@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package main;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.gostring_all) = true;
+option (gogoproto.goproto_stringer_all) = false;
+option (gogoproto.stringer_all) = true;
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+
+option (gogoproto.testgen_all) = true;
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+
+enum MessageType {
+  MSG_REQUEST_TO_SEND_FILE = 0;
+  MSG_ACCEPT_FILE = 1;
+  MSG_REJECT_FILE = 2;
+  MSG_FILE_CHUNK = 3;
+  MSG_FILE_CHUNK_ACK = 4;
+}
+
+message Message {
+  MessageType type = 1;
+  bytes body = 2;
+}
+
+message RequestToSendFile {
+  string file_name = 1;
+  int64 file_size = 2;
+}
+
+message AcceptFile {
+  uint32 file_id = 1;
+  uint32 chunk_size = 2;
+  uint32 chunks_buf_size = 3;
+  repeated uint32 clients = 4;
+}
+
+message RejectFile {
+}
+
+message FileChunk {
+  uint32 file_id = 1;
+  uint32 chunk_id = 2;
+  bytes data = 3;
+}
+
+message FileChunkAck {
+  uint32 file_id = 1;
+  uint32 chunk_id = 2;
+}
