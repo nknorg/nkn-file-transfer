@@ -140,10 +140,6 @@ func (sender *Sender) SendFile(receiverAddr, filePath string, fileID, chunkSize,
 			senderClients = append(senderClients, uint32(i))
 		}
 	}
-	numClients := len(senderClients)
-	if numClients > len(receiverClients) {
-		numClients = len(receiverClients)
-	}
 	var bytesSent, bytesConfirmed int64
 
 	sendChunk := func(workerID, chunkID uint32) (interface{}, bool) {
@@ -160,8 +156,9 @@ func (sender *Sender) SendFile(receiverAddr, filePath string, fileID, chunkSize,
 			return nil, false
 		}
 
-		senderClientID := senderClients[workerID%uint32(numClients)]
-		receiverClientID := receiverClients[workerID%uint32(numClients)]
+		idx := int(workerID) % (len(senderClients) * len(receiverClients))
+		senderClientID := senderClients[idx%len(senderClients)]
+		receiverClientID := receiverClients[idx/len(senderClients)]
 		addr := addIdentifier(receiverAddr, int(receiverClientID), true)
 		err = sender.clients[senderClientID].Send([]string{addr}, msg, 0)
 		if err != nil {
