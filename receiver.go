@@ -138,6 +138,7 @@ func (receiver *Receiver) startHandleMsg() {
 				case MSG_REQUEST_TO_SEND_FILE:
 					requestToSendFile := msgBody.(*RequestToSendFile)
 					if _, err := os.Stat(requestToSendFile.FileName); !os.IsNotExist(err) {
+						fmt.Printf("File %s exists, reject request\n", requestToSendFile.FileName)
 						reply, err := NewRejectFileMessage()
 						if err != nil {
 							fmt.Printf("Create RejectFile message error: %v\n", err)
