@@ -29,18 +29,21 @@ message Message {
 }
 
 message RequestToSendFile {
-  string file_name = 1;
-  int64 file_size = 2;
+  uint32 request_id = 1;
+  string file_name = 2;
+  int64 file_size = 3;
 }
 
 message AcceptFile {
-  uint32 file_id = 1;
-  uint32 chunk_size = 2;
-  uint32 chunks_buf_size = 3;
-  repeated uint32 clients = 4;
+  uint32 request_id = 1;
+  uint32 file_id = 2;
+  uint32 chunk_size = 3;
+  uint32 chunks_buf_size = 4;
+  repeated uint32 clients = 5;
 }
 
 message RejectFile {
+  uint32 request_id = 1;
 }
 
 message FileChunk {

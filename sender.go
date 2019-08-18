@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"strings"
 	"sync"
@@ -57,6 +58,7 @@ func getReceiverAddr(scanner *bufio.Scanner) (string, error) {
 	fmt.Print("Enter receiver address: ")
 	scanner.Scan()
 	receiverAddr := scanner.Text()
+	receiverAddr = strings.Trim(receiverAddr, " ")
 	if len(receiverAddr) == 0 {
 		return "", fmt.Errorf("empty receiver address")
 	}
@@ -64,7 +66,8 @@ func getReceiverAddr(scanner *bufio.Scanner) (string, error) {
 }
 
 func (sender *Sender) RequestToSendFile(receiverAddr, fileName string, fileSize int64) (uint32, uint32, uint32, []uint32, error) {
-	msg, err := NewRequestToSendFileMessage(fileName, fileSize)
+	requestID := rand.Uint32()
+	msg, err := NewRequestToSendFileMessage(requestID, fileName, fileSize)
 	if err != nil {
 		return 0, 0, 0, nil, err
 	}
@@ -79,14 +82,10 @@ func (sender *Sender) RequestToSendFile(receiverAddr, fileName string, fileSize 
 		if err != nil {
 			return 0, 0, 0, nil, err
 		}
-		timeout := time.After(3 * time.Second)
+		timeout := time.After(5 * time.Second)
 		for {
 			select {
 			case reply := <-sender.ctrlMsgChan:
-				if reply.Src != addr {
-					fmt.Printf("Ignore message from %v\n", reply.Src)
-					continue
-				}
 				msgBody, msgType, err := ParseMessage(reply.Payload)
 				if err != nil {
 					fmt.Printf("Parse message error: %v\n", err)
@@ -95,6 +94,10 @@ func (sender *Sender) RequestToSendFile(receiverAddr, fileName string, fileSize 
 				switch msgType {
 				case MSG_ACCEPT_FILE:
 					acceptFile := msgBody.(*AcceptFile)
+					if acceptFile.RequestId != requestID {
+						fmt.Printf("Ignore AcceptFile message from %v with incorrect request id %d\n", reply.Src, acceptFile.RequestId)
+						continue
+					}
 					fmt.Printf("Receiver %s accepted file %v (%d bytes)\n", receiverAddr, fileName, fileSize)
 					fmt.Printf(
 						"File ID: %d\nChunkSize: %d\nChunksBufSize: %d\nReceiverClients: %d\n",
@@ -102,6 +105,11 @@ func (sender *Sender) RequestToSendFile(receiverAddr, fileName string, fileSize 
 					)
 					return acceptFile.FileId, acceptFile.ChunkSize, acceptFile.ChunksBufSize, acceptFile.Clients, nil
 				case MSG_REJECT_FILE:
+					rejectFile := msgBody.(*RejectFile)
+					if rejectFile.RequestId != requestID {
+						fmt.Printf("Ignore RejectFile message from %v with incorrect request id %d\n", reply.Src, rejectFile.RequestId)
+						continue
+					}
 					return 0, 0, 0, nil, fmt.Errorf("Receiver %s rejected file %s", receiverAddr, fileName)
 				default:
 					fmt.Printf("Ignore message type %v\n", msgType)

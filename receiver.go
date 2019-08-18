@@ -139,7 +139,7 @@ func (receiver *Receiver) startHandleMsg() {
 					requestToSendFile := msgBody.(*RequestToSendFile)
 					if _, err := os.Stat(requestToSendFile.FileName); !os.IsNotExist(err) {
 						fmt.Printf("File %s exists, reject request\n", requestToSendFile.FileName)
-						reply, err := NewRejectFileMessage()
+						reply, err := NewRejectFileMessage(requestToSendFile.RequestId)
 						if err != nil {
 							fmt.Printf("Create RejectFile message error: %v\n", err)
 							continue
@@ -159,7 +159,7 @@ func (receiver *Receiver) startHandleMsg() {
 							availableClients = append(availableClients, uint32(i))
 						}
 					}
-					reply, err := NewAcceptFileMessage(fileID, receiver.chunkSize, receiver.chunksBufSize, availableClients)
+					reply, err := NewAcceptFileMessage(requestToSendFile.RequestId, fileID, receiver.chunkSize, receiver.chunksBufSize, availableClients)
 					if err != nil {
 						fmt.Printf("Create AcceptFile message error: %v\n", err)
 						continue
