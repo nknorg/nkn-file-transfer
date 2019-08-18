@@ -54,10 +54,11 @@ func ParseMessage(buf []byte) (interface{}, MessageType, error) {
 	return nil, msg.Type, fmt.Errorf("Unknown message type %v", msg.Type)
 }
 
-func NewRequestToSendFileMessage(fileName string, fileSize int64) ([]byte, error) {
+func NewRequestToSendFileMessage(requestID uint32, fileName string, fileSize int64) ([]byte, error) {
 	msgBody := &RequestToSendFile{
-		FileName: fileName,
-		FileSize: fileSize,
+		RequestId: requestID,
+		FileName:  fileName,
+		FileSize:  fileSize,
 	}
 
 	buf, err := proto.Marshal(msgBody)
@@ -73,8 +74,9 @@ func NewRequestToSendFileMessage(fileName string, fileSize int64) ([]byte, error
 	return proto.Marshal(msg)
 }
 
-func NewAcceptFileMessage(fileID, chunkSize, chunksBufSize uint32, clients []uint32) ([]byte, error) {
+func NewAcceptFileMessage(requestID, fileID, chunkSize, chunksBufSize uint32, clients []uint32) ([]byte, error) {
 	msgBody := &AcceptFile{
+		RequestId:     requestID,
 		FileId:        fileID,
 		ChunkSize:     chunkSize,
 		ChunksBufSize: chunksBufSize,
@@ -94,8 +96,10 @@ func NewAcceptFileMessage(fileID, chunkSize, chunksBufSize uint32, clients []uin
 	return proto.Marshal(msg)
 }
 
-func NewRejectFileMessage() ([]byte, error) {
-	msgBody := &RejectFile{}
+func NewRejectFileMessage(requestID uint32) ([]byte, error) {
+	msgBody := &RejectFile{
+		RequestId: requestID,
+	}
 
 	buf, err := proto.Marshal(msgBody)
 	if err != nil {
