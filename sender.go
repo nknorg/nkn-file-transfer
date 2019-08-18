@@ -74,7 +74,7 @@ func (sender *Sender) RequestToSendFile(receiverAddr, fileName string, fileSize 
 			continue
 		}
 		fmt.Printf("Request to send file %v (%d bytes) to %s using client %d\n", fileName, fileSize, receiverAddr, i)
-		addr := addIdentifier(receiverAddr, i)
+		addr := addIdentifier(receiverAddr, i, true)
 		err = sender.clients[i].Send([]string{addr}, msg, 0)
 		if err != nil {
 			return 0, 0, 0, nil, err
@@ -162,7 +162,7 @@ func (sender *Sender) SendFile(receiverAddr, filePath string, fileID, chunkSize,
 
 		senderClientID := senderClients[workerID%uint32(numClients)]
 		receiverClientID := receiverClients[workerID%uint32(numClients)]
-		addr := addIdentifier(receiverAddr, int(receiverClientID))
+		addr := addIdentifier(receiverAddr, int(receiverClientID), true)
 		err = sender.clients[senderClientID].Send([]string{addr}, msg, 0)
 		if err != nil {
 			fmt.Printf("Send message from client %d to receiver client %d error: %v\n", senderClientID, receiverClientID, err)

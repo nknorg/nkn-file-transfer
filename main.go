@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
+	"time"
 
 	nknsdk "github.com/nknorg/nkn-sdk-go"
 	"github.com/nknorg/nkn/common"
@@ -35,6 +37,8 @@ func main() {
 	if *bufSizePtr <= 0 {
 		fmt.Printf("File buffer size needs to be greater than 0")
 	}
+
+	rand.Seed(time.Now().Unix())
 
 	nknsdk.Init()
 
@@ -69,7 +73,7 @@ func main() {
 
 	addr := address.MakeAddressString(account.PubKey().EncodePoint(), *identifierPtr)
 
-	clients, err := CreateClients(account, *identifierPtr, *numClientsPtr)
+	clients, err := CreateClients(account, *identifierPtr, *numClientsPtr, *receiveModePtr)
 	if err != nil {
 		fmt.Printf("Create clients error: %v\n", err)
 		os.Exit(1)
