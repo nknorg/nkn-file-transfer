@@ -64,14 +64,23 @@ func chanKey(fileID, chunkID uint32) string {
 	return fmt.Sprintf("%d-%d", fileID, chunkID)
 }
 
-func addIdentifier(baseAddr string, i int) string {
-	return strconv.Itoa(i) + "." + baseAddr
+func getIdentifier(i int, isReceiver bool) string {
+	identifier := strconv.Itoa(i)
+	if isReceiver {
+		identifier += ".receiver"
+	} else {
+		identifier += ".sender"
+	}
+	return identifier
 }
 
-func CreateClients(account *vault.Account, baseIdentifier string, numClients int) ([]*nknsdk.Client, error) {
+func addIdentifier(baseAddr string, i int, isReceiver bool) string {
+	return getIdentifier(i, isReceiver) + "." + baseAddr
+}
+
+func CreateClients(account *vault.Account, baseIdentifier string, numClients int, isReceiver bool) ([]*nknsdk.Client, error) {
 	var wg sync.WaitGroup
 	clients := make([]*nknsdk.Client, numClients)
-	rand.Seed(time.Now().Unix())
 
 	fmt.Printf("Creating %d clients...\n", numClients)
 
@@ -80,7 +89,7 @@ func CreateClients(account *vault.Account, baseIdentifier string, numClients int
 		go func(i int) {
 			defer wg.Done()
 
-			identifier := strconv.Itoa(i)
+			identifier := getIdentifier(i, isReceiver)
 			if len(baseIdentifier) > 0 {
 				identifier += "." + baseIdentifier
 			}
