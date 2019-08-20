@@ -28,33 +28,68 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
+type Mode int32
+
+const (
+	MODE_SEND    Mode = 0
+	MODE_RECEIVE Mode = 1
+	MODE_GET     Mode = 2
+	MODE_HOST    Mode = 3
+)
+
+var Mode_name = map[int32]string{
+	0: "MODE_SEND",
+	1: "MODE_RECEIVE",
+	2: "MODE_GET",
+	3: "MODE_HOST",
+}
+var Mode_value = map[string]int32{
+	"MODE_SEND":    0,
+	"MODE_RECEIVE": 1,
+	"MODE_GET":     2,
+	"MODE_HOST":    3,
+}
+
+func (Mode) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_message_fff444b2253a676a, []int{0}
+}
+
 type MessageType int32
 
 const (
-	MSG_REQUEST_TO_SEND_FILE MessageType = 0
-	MSG_ACCEPT_FILE          MessageType = 1
-	MSG_REJECT_FILE          MessageType = 2
-	MSG_FILE_CHUNK           MessageType = 3
-	MSG_FILE_CHUNK_ACK       MessageType = 4
+	MSG_REQUEST_SEND_FILE MessageType = 0
+	MSG_ACCEPT_SEND_FILE  MessageType = 1
+	MSG_REJECT_SEND_FILE  MessageType = 2
+	MSG_FILE_CHUNK        MessageType = 3
+	MSG_FILE_CHUNK_ACK    MessageType = 4
+	MSG_REQUEST_GET_FILE  MessageType = 5
+	MSG_ACCEPT_GET_FILE   MessageType = 6
+	MSG_REJECT_GET_FILE   MessageType = 7
 )
 
 var MessageType_name = map[int32]string{
-	0: "MSG_REQUEST_TO_SEND_FILE",
-	1: "MSG_ACCEPT_FILE",
-	2: "MSG_REJECT_FILE",
+	0: "MSG_REQUEST_SEND_FILE",
+	1: "MSG_ACCEPT_SEND_FILE",
+	2: "MSG_REJECT_SEND_FILE",
 	3: "MSG_FILE_CHUNK",
 	4: "MSG_FILE_CHUNK_ACK",
+	5: "MSG_REQUEST_GET_FILE",
+	6: "MSG_ACCEPT_GET_FILE",
+	7: "MSG_REJECT_GET_FILE",
 }
 var MessageType_value = map[string]int32{
-	"MSG_REQUEST_TO_SEND_FILE": 0,
-	"MSG_ACCEPT_FILE":          1,
-	"MSG_REJECT_FILE":          2,
-	"MSG_FILE_CHUNK":           3,
-	"MSG_FILE_CHUNK_ACK":       4,
+	"MSG_REQUEST_SEND_FILE": 0,
+	"MSG_ACCEPT_SEND_FILE":  1,
+	"MSG_REJECT_SEND_FILE":  2,
+	"MSG_FILE_CHUNK":        3,
+	"MSG_FILE_CHUNK_ACK":    4,
+	"MSG_REQUEST_GET_FILE":  5,
+	"MSG_ACCEPT_GET_FILE":   6,
+	"MSG_REJECT_GET_FILE":   7,
 }
 
 func (MessageType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_message_388292732507f9a6, []int{0}
+	return fileDescriptor_message_fff444b2253a676a, []int{1}
 }
 
 type Message struct {
@@ -65,7 +100,7 @@ type Message struct {
 func (m *Message) Reset()      { *m = Message{} }
 func (*Message) ProtoMessage() {}
 func (*Message) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_388292732507f9a6, []int{0}
+	return fileDescriptor_message_fff444b2253a676a, []int{0}
 }
 func (m *Message) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -98,7 +133,7 @@ func (m *Message) GetType() MessageType {
 	if m != nil {
 		return m.Type
 	}
-	return MSG_REQUEST_TO_SEND_FILE
+	return MSG_REQUEST_SEND_FILE
 }
 
 func (m *Message) GetBody() []byte {
@@ -108,23 +143,23 @@ func (m *Message) GetBody() []byte {
 	return nil
 }
 
-type RequestToSendFile struct {
+type RequestSendFile struct {
 	RequestId uint32 `protobuf:"varint,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	FileName  string `protobuf:"bytes,2,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
 	FileSize  int64  `protobuf:"varint,3,opt,name=file_size,json=fileSize,proto3" json:"file_size,omitempty"`
 }
 
-func (m *RequestToSendFile) Reset()      { *m = RequestToSendFile{} }
-func (*RequestToSendFile) ProtoMessage() {}
-func (*RequestToSendFile) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_388292732507f9a6, []int{1}
+func (m *RequestSendFile) Reset()      { *m = RequestSendFile{} }
+func (*RequestSendFile) ProtoMessage() {}
+func (*RequestSendFile) Descriptor() ([]byte, []int) {
+	return fileDescriptor_message_fff444b2253a676a, []int{1}
 }
-func (m *RequestToSendFile) XXX_Unmarshal(b []byte) error {
+func (m *RequestSendFile) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *RequestToSendFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *RequestSendFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_RequestToSendFile.Marshal(b, m, deterministic)
+		return xxx_messageInfo_RequestSendFile.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -134,40 +169,40 @@ func (m *RequestToSendFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return b[:n], nil
 	}
 }
-func (dst *RequestToSendFile) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RequestToSendFile.Merge(dst, src)
+func (dst *RequestSendFile) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestSendFile.Merge(dst, src)
 }
-func (m *RequestToSendFile) XXX_Size() int {
+func (m *RequestSendFile) XXX_Size() int {
 	return m.Size()
 }
-func (m *RequestToSendFile) XXX_DiscardUnknown() {
-	xxx_messageInfo_RequestToSendFile.DiscardUnknown(m)
+func (m *RequestSendFile) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestSendFile.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_RequestToSendFile proto.InternalMessageInfo
+var xxx_messageInfo_RequestSendFile proto.InternalMessageInfo
 
-func (m *RequestToSendFile) GetRequestId() uint32 {
+func (m *RequestSendFile) GetRequestId() uint32 {
 	if m != nil {
 		return m.RequestId
 	}
 	return 0
 }
 
-func (m *RequestToSendFile) GetFileName() string {
+func (m *RequestSendFile) GetFileName() string {
 	if m != nil {
 		return m.FileName
 	}
 	return ""
 }
 
-func (m *RequestToSendFile) GetFileSize() int64 {
+func (m *RequestSendFile) GetFileSize() int64 {
 	if m != nil {
 		return m.FileSize
 	}
 	return 0
 }
 
-type AcceptFile struct {
+type AcceptSendFile struct {
 	RequestId     uint32   `protobuf:"varint,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	FileId        uint32   `protobuf:"varint,2,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
 	ChunkSize     uint32   `protobuf:"varint,3,opt,name=chunk_size,json=chunkSize,proto3" json:"chunk_size,omitempty"`
@@ -175,17 +210,17 @@ type AcceptFile struct {
 	Clients       []uint32 `protobuf:"varint,5,rep,packed,name=clients" json:"clients,omitempty"`
 }
 
-func (m *AcceptFile) Reset()      { *m = AcceptFile{} }
-func (*AcceptFile) ProtoMessage() {}
-func (*AcceptFile) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_388292732507f9a6, []int{2}
+func (m *AcceptSendFile) Reset()      { *m = AcceptSendFile{} }
+func (*AcceptSendFile) ProtoMessage() {}
+func (*AcceptSendFile) Descriptor() ([]byte, []int) {
+	return fileDescriptor_message_fff444b2253a676a, []int{2}
 }
-func (m *AcceptFile) XXX_Unmarshal(b []byte) error {
+func (m *AcceptSendFile) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *AcceptFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *AcceptSendFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_AcceptFile.Marshal(b, m, deterministic)
+		return xxx_messageInfo_AcceptSendFile.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -195,68 +230,68 @@ func (m *AcceptFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *AcceptFile) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AcceptFile.Merge(dst, src)
+func (dst *AcceptSendFile) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AcceptSendFile.Merge(dst, src)
 }
-func (m *AcceptFile) XXX_Size() int {
+func (m *AcceptSendFile) XXX_Size() int {
 	return m.Size()
 }
-func (m *AcceptFile) XXX_DiscardUnknown() {
-	xxx_messageInfo_AcceptFile.DiscardUnknown(m)
+func (m *AcceptSendFile) XXX_DiscardUnknown() {
+	xxx_messageInfo_AcceptSendFile.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_AcceptFile proto.InternalMessageInfo
+var xxx_messageInfo_AcceptSendFile proto.InternalMessageInfo
 
-func (m *AcceptFile) GetRequestId() uint32 {
+func (m *AcceptSendFile) GetRequestId() uint32 {
 	if m != nil {
 		return m.RequestId
 	}
 	return 0
 }
 
-func (m *AcceptFile) GetFileId() uint32 {
+func (m *AcceptSendFile) GetFileId() uint32 {
 	if m != nil {
 		return m.FileId
 	}
 	return 0
 }
 
-func (m *AcceptFile) GetChunkSize() uint32 {
+func (m *AcceptSendFile) GetChunkSize() uint32 {
 	if m != nil {
 		return m.ChunkSize
 	}
 	return 0
 }
 
-func (m *AcceptFile) GetChunksBufSize() uint32 {
+func (m *AcceptSendFile) GetChunksBufSize() uint32 {
 	if m != nil {
 		return m.ChunksBufSize
 	}
 	return 0
 }
 
-func (m *AcceptFile) GetClients() []uint32 {
+func (m *AcceptSendFile) GetClients() []uint32 {
 	if m != nil {
 		return m.Clients
 	}
 	return nil
 }
 
-type RejectFile struct {
+type RejectSendFile struct {
 	RequestId uint32 `protobuf:"varint,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 }
 
-func (m *RejectFile) Reset()      { *m = RejectFile{} }
-func (*RejectFile) ProtoMessage() {}
-func (*RejectFile) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_388292732507f9a6, []int{3}
+func (m *RejectSendFile) Reset()      { *m = RejectSendFile{} }
+func (*RejectSendFile) ProtoMessage() {}
+func (*RejectSendFile) Descriptor() ([]byte, []int) {
+	return fileDescriptor_message_fff444b2253a676a, []int{3}
 }
-func (m *RejectFile) XXX_Unmarshal(b []byte) error {
+func (m *RejectSendFile) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *RejectFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *RejectSendFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_RejectFile.Marshal(b, m, deterministic)
+		return xxx_messageInfo_RejectSendFile.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -266,19 +301,19 @@ func (m *RejectFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *RejectFile) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RejectFile.Merge(dst, src)
+func (dst *RejectSendFile) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RejectSendFile.Merge(dst, src)
 }
-func (m *RejectFile) XXX_Size() int {
+func (m *RejectSendFile) XXX_Size() int {
 	return m.Size()
 }
-func (m *RejectFile) XXX_DiscardUnknown() {
-	xxx_messageInfo_RejectFile.DiscardUnknown(m)
+func (m *RejectSendFile) XXX_DiscardUnknown() {
+	xxx_messageInfo_RejectSendFile.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_RejectFile proto.InternalMessageInfo
+var xxx_messageInfo_RejectSendFile proto.InternalMessageInfo
 
-func (m *RejectFile) GetRequestId() uint32 {
+func (m *RejectSendFile) GetRequestId() uint32 {
 	if m != nil {
 		return m.RequestId
 	}
@@ -294,7 +329,7 @@ type FileChunk struct {
 func (m *FileChunk) Reset()      { *m = FileChunk{} }
 func (*FileChunk) ProtoMessage() {}
 func (*FileChunk) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_388292732507f9a6, []int{4}
+	return fileDescriptor_message_fff444b2253a676a, []int{4}
 }
 func (m *FileChunk) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -352,7 +387,7 @@ type FileChunkAck struct {
 func (m *FileChunkAck) Reset()      { *m = FileChunkAck{} }
 func (*FileChunkAck) ProtoMessage() {}
 func (*FileChunkAck) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_388292732507f9a6, []int{5}
+	return fileDescriptor_message_fff444b2253a676a, []int{5}
 }
 func (m *FileChunkAck) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -395,14 +430,194 @@ func (m *FileChunkAck) GetChunkId() uint32 {
 	return 0
 }
 
+type RequestGetFile struct {
+	FileName      string   `protobuf:"bytes,1,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
+	FileId        uint32   `protobuf:"varint,2,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+	ChunkSize     uint32   `protobuf:"varint,3,opt,name=chunk_size,json=chunkSize,proto3" json:"chunk_size,omitempty"`
+	ChunksBufSize uint32   `protobuf:"varint,4,opt,name=chunks_buf_size,json=chunksBufSize,proto3" json:"chunks_buf_size,omitempty"`
+	Clients       []uint32 `protobuf:"varint,5,rep,packed,name=clients" json:"clients,omitempty"`
+}
+
+func (m *RequestGetFile) Reset()      { *m = RequestGetFile{} }
+func (*RequestGetFile) ProtoMessage() {}
+func (*RequestGetFile) Descriptor() ([]byte, []int) {
+	return fileDescriptor_message_fff444b2253a676a, []int{6}
+}
+func (m *RequestGetFile) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RequestGetFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_RequestGetFile.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (dst *RequestGetFile) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RequestGetFile.Merge(dst, src)
+}
+func (m *RequestGetFile) XXX_Size() int {
+	return m.Size()
+}
+func (m *RequestGetFile) XXX_DiscardUnknown() {
+	xxx_messageInfo_RequestGetFile.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RequestGetFile proto.InternalMessageInfo
+
+func (m *RequestGetFile) GetFileName() string {
+	if m != nil {
+		return m.FileName
+	}
+	return ""
+}
+
+func (m *RequestGetFile) GetFileId() uint32 {
+	if m != nil {
+		return m.FileId
+	}
+	return 0
+}
+
+func (m *RequestGetFile) GetChunkSize() uint32 {
+	if m != nil {
+		return m.ChunkSize
+	}
+	return 0
+}
+
+func (m *RequestGetFile) GetChunksBufSize() uint32 {
+	if m != nil {
+		return m.ChunksBufSize
+	}
+	return 0
+}
+
+func (m *RequestGetFile) GetClients() []uint32 {
+	if m != nil {
+		return m.Clients
+	}
+	return nil
+}
+
+type AcceptGetFile struct {
+	FileId   uint32 `protobuf:"varint,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+	FileSize int64  `protobuf:"varint,3,opt,name=file_size,json=fileSize,proto3" json:"file_size,omitempty"`
+}
+
+func (m *AcceptGetFile) Reset()      { *m = AcceptGetFile{} }
+func (*AcceptGetFile) ProtoMessage() {}
+func (*AcceptGetFile) Descriptor() ([]byte, []int) {
+	return fileDescriptor_message_fff444b2253a676a, []int{7}
+}
+func (m *AcceptGetFile) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *AcceptGetFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_AcceptGetFile.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (dst *AcceptGetFile) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AcceptGetFile.Merge(dst, src)
+}
+func (m *AcceptGetFile) XXX_Size() int {
+	return m.Size()
+}
+func (m *AcceptGetFile) XXX_DiscardUnknown() {
+	xxx_messageInfo_AcceptGetFile.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AcceptGetFile proto.InternalMessageInfo
+
+func (m *AcceptGetFile) GetFileId() uint32 {
+	if m != nil {
+		return m.FileId
+	}
+	return 0
+}
+
+func (m *AcceptGetFile) GetFileSize() int64 {
+	if m != nil {
+		return m.FileSize
+	}
+	return 0
+}
+
+type RejectGetFile struct {
+	FileId uint32 `protobuf:"varint,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+}
+
+func (m *RejectGetFile) Reset()      { *m = RejectGetFile{} }
+func (*RejectGetFile) ProtoMessage() {}
+func (*RejectGetFile) Descriptor() ([]byte, []int) {
+	return fileDescriptor_message_fff444b2253a676a, []int{8}
+}
+func (m *RejectGetFile) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RejectGetFile) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_RejectGetFile.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (dst *RejectGetFile) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RejectGetFile.Merge(dst, src)
+}
+func (m *RejectGetFile) XXX_Size() int {
+	return m.Size()
+}
+func (m *RejectGetFile) XXX_DiscardUnknown() {
+	xxx_messageInfo_RejectGetFile.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RejectGetFile proto.InternalMessageInfo
+
+func (m *RejectGetFile) GetFileId() uint32 {
+	if m != nil {
+		return m.FileId
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*Message)(nil), "main.Message")
-	proto.RegisterType((*RequestToSendFile)(nil), "main.RequestToSendFile")
-	proto.RegisterType((*AcceptFile)(nil), "main.AcceptFile")
-	proto.RegisterType((*RejectFile)(nil), "main.RejectFile")
+	proto.RegisterType((*RequestSendFile)(nil), "main.RequestSendFile")
+	proto.RegisterType((*AcceptSendFile)(nil), "main.AcceptSendFile")
+	proto.RegisterType((*RejectSendFile)(nil), "main.RejectSendFile")
 	proto.RegisterType((*FileChunk)(nil), "main.FileChunk")
 	proto.RegisterType((*FileChunkAck)(nil), "main.FileChunkAck")
+	proto.RegisterType((*RequestGetFile)(nil), "main.RequestGetFile")
+	proto.RegisterType((*AcceptGetFile)(nil), "main.AcceptGetFile")
+	proto.RegisterType((*RejectGetFile)(nil), "main.RejectGetFile")
+	proto.RegisterEnum("main.Mode", Mode_name, Mode_value)
 	proto.RegisterEnum("main.MessageType", MessageType_name, MessageType_value)
+}
+func (x Mode) String() string {
+	s, ok := Mode_name[int32(x)]
+	if ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
 }
 func (x MessageType) String() string {
 	s, ok := MessageType_name[int32(x)]
@@ -438,14 +653,14 @@ func (this *Message) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *RequestToSendFile) Equal(that interface{}) bool {
+func (this *RequestSendFile) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*RequestToSendFile)
+	that1, ok := that.(*RequestSendFile)
 	if !ok {
-		that2, ok := that.(RequestToSendFile)
+		that2, ok := that.(RequestSendFile)
 		if ok {
 			that1 = &that2
 		} else {
@@ -468,14 +683,14 @@ func (this *RequestToSendFile) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *AcceptFile) Equal(that interface{}) bool {
+func (this *AcceptSendFile) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*AcceptFile)
+	that1, ok := that.(*AcceptSendFile)
 	if !ok {
-		that2, ok := that.(AcceptFile)
+		that2, ok := that.(AcceptSendFile)
 		if ok {
 			that1 = &that2
 		} else {
@@ -509,14 +724,14 @@ func (this *AcceptFile) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *RejectFile) Equal(that interface{}) bool {
+func (this *RejectSendFile) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*RejectFile)
+	that1, ok := that.(*RejectSendFile)
 	if !ok {
-		that2, ok := that.(RejectFile)
+		that2, ok := that.(RejectSendFile)
 		if ok {
 			that1 = &that2
 		} else {
@@ -590,6 +805,98 @@ func (this *FileChunkAck) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *RequestGetFile) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RequestGetFile)
+	if !ok {
+		that2, ok := that.(RequestGetFile)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.FileName != that1.FileName {
+		return false
+	}
+	if this.FileId != that1.FileId {
+		return false
+	}
+	if this.ChunkSize != that1.ChunkSize {
+		return false
+	}
+	if this.ChunksBufSize != that1.ChunksBufSize {
+		return false
+	}
+	if len(this.Clients) != len(that1.Clients) {
+		return false
+	}
+	for i := range this.Clients {
+		if this.Clients[i] != that1.Clients[i] {
+			return false
+		}
+	}
+	return true
+}
+func (this *AcceptGetFile) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*AcceptGetFile)
+	if !ok {
+		that2, ok := that.(AcceptGetFile)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.FileId != that1.FileId {
+		return false
+	}
+	if this.FileSize != that1.FileSize {
+		return false
+	}
+	return true
+}
+func (this *RejectGetFile) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RejectGetFile)
+	if !ok {
+		that2, ok := that.(RejectGetFile)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.FileId != that1.FileId {
+		return false
+	}
+	return true
+}
 func (this *Message) GoString() string {
 	if this == nil {
 		return "nil"
@@ -601,24 +908,24 @@ func (this *Message) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *RequestToSendFile) GoString() string {
+func (this *RequestSendFile) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 7)
-	s = append(s, "&main.RequestToSendFile{")
+	s = append(s, "&main.RequestSendFile{")
 	s = append(s, "RequestId: "+fmt.Sprintf("%#v", this.RequestId)+",\n")
 	s = append(s, "FileName: "+fmt.Sprintf("%#v", this.FileName)+",\n")
 	s = append(s, "FileSize: "+fmt.Sprintf("%#v", this.FileSize)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *AcceptFile) GoString() string {
+func (this *AcceptSendFile) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 9)
-	s = append(s, "&main.AcceptFile{")
+	s = append(s, "&main.AcceptSendFile{")
 	s = append(s, "RequestId: "+fmt.Sprintf("%#v", this.RequestId)+",\n")
 	s = append(s, "FileId: "+fmt.Sprintf("%#v", this.FileId)+",\n")
 	s = append(s, "ChunkSize: "+fmt.Sprintf("%#v", this.ChunkSize)+",\n")
@@ -627,12 +934,12 @@ func (this *AcceptFile) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *RejectFile) GoString() string {
+func (this *RejectSendFile) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 5)
-	s = append(s, "&main.RejectFile{")
+	s = append(s, "&main.RejectSendFile{")
 	s = append(s, "RequestId: "+fmt.Sprintf("%#v", this.RequestId)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -657,6 +964,41 @@ func (this *FileChunkAck) GoString() string {
 	s = append(s, "&main.FileChunkAck{")
 	s = append(s, "FileId: "+fmt.Sprintf("%#v", this.FileId)+",\n")
 	s = append(s, "ChunkId: "+fmt.Sprintf("%#v", this.ChunkId)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *RequestGetFile) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 9)
+	s = append(s, "&main.RequestGetFile{")
+	s = append(s, "FileName: "+fmt.Sprintf("%#v", this.FileName)+",\n")
+	s = append(s, "FileId: "+fmt.Sprintf("%#v", this.FileId)+",\n")
+	s = append(s, "ChunkSize: "+fmt.Sprintf("%#v", this.ChunkSize)+",\n")
+	s = append(s, "ChunksBufSize: "+fmt.Sprintf("%#v", this.ChunksBufSize)+",\n")
+	s = append(s, "Clients: "+fmt.Sprintf("%#v", this.Clients)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *AcceptGetFile) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&main.AcceptGetFile{")
+	s = append(s, "FileId: "+fmt.Sprintf("%#v", this.FileId)+",\n")
+	s = append(s, "FileSize: "+fmt.Sprintf("%#v", this.FileSize)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *RejectGetFile) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&main.RejectGetFile{")
+	s = append(s, "FileId: "+fmt.Sprintf("%#v", this.FileId)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -697,7 +1039,7 @@ func (m *Message) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *RequestToSendFile) Marshal() (dAtA []byte, err error) {
+func (m *RequestSendFile) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -707,7 +1049,7 @@ func (m *RequestToSendFile) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *RequestToSendFile) MarshalTo(dAtA []byte) (int, error) {
+func (m *RequestSendFile) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -731,7 +1073,7 @@ func (m *RequestToSendFile) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *AcceptFile) Marshal() (dAtA []byte, err error) {
+func (m *AcceptSendFile) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -741,7 +1083,7 @@ func (m *AcceptFile) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *AcceptFile) MarshalTo(dAtA []byte) (int, error) {
+func (m *AcceptSendFile) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -786,7 +1128,7 @@ func (m *AcceptFile) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *RejectFile) Marshal() (dAtA []byte, err error) {
+func (m *RejectSendFile) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -796,7 +1138,7 @@ func (m *RejectFile) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *RejectFile) MarshalTo(dAtA []byte) (int, error) {
+func (m *RejectSendFile) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -871,6 +1213,113 @@ func (m *FileChunkAck) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *RequestGetFile) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RequestGetFile) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.FileName) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.FileName)))
+		i += copy(dAtA[i:], m.FileName)
+	}
+	if m.FileId != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(m.FileId))
+	}
+	if m.ChunkSize != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(m.ChunkSize))
+	}
+	if m.ChunksBufSize != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(m.ChunksBufSize))
+	}
+	if len(m.Clients) > 0 {
+		dAtA4 := make([]byte, len(m.Clients)*10)
+		var j3 int
+		for _, num := range m.Clients {
+			for num >= 1<<7 {
+				dAtA4[j3] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j3++
+			}
+			dAtA4[j3] = uint8(num)
+			j3++
+		}
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(j3))
+		i += copy(dAtA[i:], dAtA4[:j3])
+	}
+	return i, nil
+}
+
+func (m *AcceptGetFile) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcceptGetFile) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.FileId != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(m.FileId))
+	}
+	if m.FileSize != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(m.FileSize))
+	}
+	return i, nil
+}
+
+func (m *RejectGetFile) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RejectGetFile) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.FileId != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(m.FileId))
+	}
+	return i, nil
+}
+
 func encodeVarintMessage(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -882,7 +1331,7 @@ func encodeVarintMessage(dAtA []byte, offset int, v uint64) int {
 }
 func NewPopulatedMessage(r randyMessage, easy bool) *Message {
 	this := &Message{}
-	this.Type = MessageType([]int32{0, 1, 2, 3, 4}[r.Intn(5)])
+	this.Type = MessageType([]int32{0, 1, 2, 3, 4, 5, 6, 7}[r.Intn(8)])
 	v1 := r.Intn(100)
 	this.Body = make([]byte, v1)
 	for i := 0; i < v1; i++ {
@@ -893,8 +1342,8 @@ func NewPopulatedMessage(r randyMessage, easy bool) *Message {
 	return this
 }
 
-func NewPopulatedRequestToSendFile(r randyMessage, easy bool) *RequestToSendFile {
-	this := &RequestToSendFile{}
+func NewPopulatedRequestSendFile(r randyMessage, easy bool) *RequestSendFile {
+	this := &RequestSendFile{}
 	this.RequestId = uint32(r.Uint32())
 	this.FileName = string(randStringMessage(r))
 	this.FileSize = int64(r.Int63())
@@ -906,8 +1355,8 @@ func NewPopulatedRequestToSendFile(r randyMessage, easy bool) *RequestToSendFile
 	return this
 }
 
-func NewPopulatedAcceptFile(r randyMessage, easy bool) *AcceptFile {
-	this := &AcceptFile{}
+func NewPopulatedAcceptSendFile(r randyMessage, easy bool) *AcceptSendFile {
+	this := &AcceptSendFile{}
 	this.RequestId = uint32(r.Uint32())
 	this.FileId = uint32(r.Uint32())
 	this.ChunkSize = uint32(r.Uint32())
@@ -922,8 +1371,8 @@ func NewPopulatedAcceptFile(r randyMessage, easy bool) *AcceptFile {
 	return this
 }
 
-func NewPopulatedRejectFile(r randyMessage, easy bool) *RejectFile {
-	this := &RejectFile{}
+func NewPopulatedRejectSendFile(r randyMessage, easy bool) *RejectSendFile {
+	this := &RejectSendFile{}
 	this.RequestId = uint32(r.Uint32())
 	if !easy && r.Intn(10) != 0 {
 	}
@@ -953,6 +1402,42 @@ func NewPopulatedFileChunkAck(r randyMessage, easy bool) *FileChunkAck {
 	return this
 }
 
+func NewPopulatedRequestGetFile(r randyMessage, easy bool) *RequestGetFile {
+	this := &RequestGetFile{}
+	this.FileName = string(randStringMessage(r))
+	this.FileId = uint32(r.Uint32())
+	this.ChunkSize = uint32(r.Uint32())
+	this.ChunksBufSize = uint32(r.Uint32())
+	v4 := r.Intn(10)
+	this.Clients = make([]uint32, v4)
+	for i := 0; i < v4; i++ {
+		this.Clients[i] = uint32(r.Uint32())
+	}
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedAcceptGetFile(r randyMessage, easy bool) *AcceptGetFile {
+	this := &AcceptGetFile{}
+	this.FileId = uint32(r.Uint32())
+	this.FileSize = int64(r.Int63())
+	if r.Intn(2) == 0 {
+		this.FileSize *= -1
+	}
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedRejectGetFile(r randyMessage, easy bool) *RejectGetFile {
+	this := &RejectGetFile{}
+	this.FileId = uint32(r.Uint32())
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
 type randyMessage interface {
 	Float32() float32
 	Float64() float64
@@ -972,9 +1457,9 @@ func randUTF8RuneMessage(r randyMessage) rune {
 	return rune(ru + 61)
 }
 func randStringMessage(r randyMessage) string {
-	v4 := r.Intn(100)
-	tmps := make([]rune, v4)
-	for i := 0; i < v4; i++ {
+	v5 := r.Intn(100)
+	tmps := make([]rune, v5)
+	for i := 0; i < v5; i++ {
 		tmps[i] = randUTF8RuneMessage(r)
 	}
 	return string(tmps)
@@ -996,11 +1481,11 @@ func randFieldMessage(dAtA []byte, r randyMessage, fieldNumber int, wire int) []
 	switch wire {
 	case 0:
 		dAtA = encodeVarintPopulateMessage(dAtA, uint64(key))
-		v5 := r.Int63()
+		v6 := r.Int63()
 		if r.Intn(2) == 0 {
-			v5 *= -1
+			v6 *= -1
 		}
-		dAtA = encodeVarintPopulateMessage(dAtA, uint64(v5))
+		dAtA = encodeVarintPopulateMessage(dAtA, uint64(v6))
 	case 1:
 		dAtA = encodeVarintPopulateMessage(dAtA, uint64(key))
 		dAtA = append(dAtA, byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)))
@@ -1041,7 +1526,7 @@ func (m *Message) Size() (n int) {
 	return n
 }
 
-func (m *RequestToSendFile) Size() (n int) {
+func (m *RequestSendFile) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1060,7 +1545,7 @@ func (m *RequestToSendFile) Size() (n int) {
 	return n
 }
 
-func (m *AcceptFile) Size() (n int) {
+func (m *AcceptSendFile) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1088,7 +1573,7 @@ func (m *AcceptFile) Size() (n int) {
 	return n
 }
 
-func (m *RejectFile) Size() (n int) {
+func (m *RejectSendFile) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1134,6 +1619,62 @@ func (m *FileChunkAck) Size() (n int) {
 	return n
 }
 
+func (m *RequestGetFile) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.FileName)
+	if l > 0 {
+		n += 1 + l + sovMessage(uint64(l))
+	}
+	if m.FileId != 0 {
+		n += 1 + sovMessage(uint64(m.FileId))
+	}
+	if m.ChunkSize != 0 {
+		n += 1 + sovMessage(uint64(m.ChunkSize))
+	}
+	if m.ChunksBufSize != 0 {
+		n += 1 + sovMessage(uint64(m.ChunksBufSize))
+	}
+	if len(m.Clients) > 0 {
+		l = 0
+		for _, e := range m.Clients {
+			l += sovMessage(uint64(e))
+		}
+		n += 1 + sovMessage(uint64(l)) + l
+	}
+	return n
+}
+
+func (m *AcceptGetFile) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.FileId != 0 {
+		n += 1 + sovMessage(uint64(m.FileId))
+	}
+	if m.FileSize != 0 {
+		n += 1 + sovMessage(uint64(m.FileSize))
+	}
+	return n
+}
+
+func (m *RejectGetFile) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.FileId != 0 {
+		n += 1 + sovMessage(uint64(m.FileId))
+	}
+	return n
+}
+
 func sovMessage(x uint64) (n int) {
 	for {
 		n++
@@ -1158,11 +1699,11 @@ func (this *Message) String() string {
 	}, "")
 	return s
 }
-func (this *RequestToSendFile) String() string {
+func (this *RequestSendFile) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&RequestToSendFile{`,
+	s := strings.Join([]string{`&RequestSendFile{`,
 		`RequestId:` + fmt.Sprintf("%v", this.RequestId) + `,`,
 		`FileName:` + fmt.Sprintf("%v", this.FileName) + `,`,
 		`FileSize:` + fmt.Sprintf("%v", this.FileSize) + `,`,
@@ -1170,11 +1711,11 @@ func (this *RequestToSendFile) String() string {
 	}, "")
 	return s
 }
-func (this *AcceptFile) String() string {
+func (this *AcceptSendFile) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&AcceptFile{`,
+	s := strings.Join([]string{`&AcceptSendFile{`,
 		`RequestId:` + fmt.Sprintf("%v", this.RequestId) + `,`,
 		`FileId:` + fmt.Sprintf("%v", this.FileId) + `,`,
 		`ChunkSize:` + fmt.Sprintf("%v", this.ChunkSize) + `,`,
@@ -1184,11 +1725,11 @@ func (this *AcceptFile) String() string {
 	}, "")
 	return s
 }
-func (this *RejectFile) String() string {
+func (this *RejectSendFile) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&RejectFile{`,
+	s := strings.Join([]string{`&RejectSendFile{`,
 		`RequestId:` + fmt.Sprintf("%v", this.RequestId) + `,`,
 		`}`,
 	}, "")
@@ -1213,6 +1754,41 @@ func (this *FileChunkAck) String() string {
 	s := strings.Join([]string{`&FileChunkAck{`,
 		`FileId:` + fmt.Sprintf("%v", this.FileId) + `,`,
 		`ChunkId:` + fmt.Sprintf("%v", this.ChunkId) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RequestGetFile) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RequestGetFile{`,
+		`FileName:` + fmt.Sprintf("%v", this.FileName) + `,`,
+		`FileId:` + fmt.Sprintf("%v", this.FileId) + `,`,
+		`ChunkSize:` + fmt.Sprintf("%v", this.ChunkSize) + `,`,
+		`ChunksBufSize:` + fmt.Sprintf("%v", this.ChunksBufSize) + `,`,
+		`Clients:` + fmt.Sprintf("%v", this.Clients) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *AcceptGetFile) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&AcceptGetFile{`,
+		`FileId:` + fmt.Sprintf("%v", this.FileId) + `,`,
+		`FileSize:` + fmt.Sprintf("%v", this.FileSize) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RejectGetFile) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RejectGetFile{`,
+		`FileId:` + fmt.Sprintf("%v", this.FileId) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1325,7 +1901,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *RequestToSendFile) Unmarshal(dAtA []byte) error {
+func (m *RequestSendFile) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1348,10 +1924,10 @@ func (m *RequestToSendFile) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: RequestToSendFile: wiretype end group for non-group")
+			return fmt.Errorf("proto: RequestSendFile: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RequestToSendFile: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: RequestSendFile: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1442,7 +2018,7 @@ func (m *RequestToSendFile) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *AcceptFile) Unmarshal(dAtA []byte) error {
+func (m *AcceptSendFile) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1465,10 +2041,10 @@ func (m *AcceptFile) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: AcceptFile: wiretype end group for non-group")
+			return fmt.Errorf("proto: AcceptSendFile: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AcceptFile: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: AcceptSendFile: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1630,7 +2206,7 @@ func (m *AcceptFile) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *RejectFile) Unmarshal(dAtA []byte) error {
+func (m *RejectSendFile) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1653,10 +2229,10 @@ func (m *RejectFile) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: RejectFile: wiretype end group for non-group")
+			return fmt.Errorf("proto: RejectSendFile: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RejectFile: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: RejectSendFile: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1906,6 +2482,361 @@ func (m *FileChunkAck) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *RequestGetFile) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMessage
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RequestGetFile: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RequestGetFile: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FileName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FileName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FileId", wireType)
+			}
+			m.FileId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FileId |= (uint32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChunkSize", wireType)
+			}
+			m.ChunkSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChunkSize |= (uint32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChunksBufSize", wireType)
+			}
+			m.ChunksBufSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChunksBufSize |= (uint32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType == 0 {
+				var v uint32
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowMessage
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= (uint32(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.Clients = append(m.Clients, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowMessage
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= (int(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthMessage
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				for iNdEx < postIndex {
+					var v uint32
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowMessage
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= (uint32(b) & 0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.Clients = append(m.Clients, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Clients", wireType)
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMessage(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AcceptGetFile) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMessage
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcceptGetFile: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcceptGetFile: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FileId", wireType)
+			}
+			m.FileId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FileId |= (uint32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FileSize", wireType)
+			}
+			m.FileSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FileSize |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMessage(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RejectGetFile) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMessage
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RejectGetFile: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RejectGetFile: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FileId", wireType)
+			}
+			m.FileId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.FileId |= (uint32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMessage(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func skipMessage(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2011,40 +2942,46 @@ var (
 	ErrIntOverflowMessage   = fmt.Errorf("proto: integer overflow")
 )
 
-func init() { proto.RegisterFile("message.proto", fileDescriptor_message_388292732507f9a6) }
+func init() { proto.RegisterFile("message.proto", fileDescriptor_message_fff444b2253a676a) }
 
-var fileDescriptor_message_388292732507f9a6 = []byte{
-	// 497 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x92, 0xcd, 0x6e, 0xd3, 0x40,
-	0x14, 0x85, 0x3d, 0x8d, 0x69, 0xea, 0x4b, 0xdc, 0xa6, 0x83, 0x04, 0xe6, 0x6f, 0x14, 0x59, 0x02,
-	0x45, 0x20, 0x52, 0x09, 0xb6, 0x6c, 0x12, 0xd7, 0x85, 0x50, 0x1a, 0x60, 0xec, 0xae, 0x2d, 0xff,
-	0x4c, 0xd2, 0x81, 0xd8, 0x0e, 0xb5, 0xbd, 0x48, 0x57, 0xf0, 0x06, 0xbc, 0x04, 0x12, 0x8f, 0xc0,
-	0x23, 0xb0, 0xcc, 0xb2, 0x4b, 0xe2, 0x6c, 0x58, 0x76, 0xc9, 0x12, 0xcd, 0x38, 0x0d, 0xed, 0xae,
-	0xea, 0xee, 0x9e, 0xef, 0xdc, 0x39, 0xf7, 0x8e, 0x66, 0x40, 0x8f, 0x59, 0x96, 0xf9, 0x23, 0xd6,
-	0x99, 0x1c, 0xa7, 0x79, 0x8a, 0xd5, 0xd8, 0xe7, 0xc9, 0xbd, 0x67, 0x23, 0x9e, 0x1f, 0x15, 0x41,
-	0x27, 0x4c, 0xe3, 0x9d, 0x51, 0x3a, 0x4a, 0x77, 0xa4, 0x19, 0x14, 0x43, 0xa9, 0xa4, 0x90, 0x55,
-	0x75, 0xc8, 0xdc, 0x85, 0xfa, 0x41, 0x95, 0x82, 0x1f, 0x81, 0x9a, 0x4f, 0x27, 0xcc, 0x40, 0x2d,
-	0xd4, 0xde, 0x7c, 0xbe, 0xdd, 0x11, 0x71, 0x9d, 0xa5, 0xe9, 0x4e, 0x27, 0x8c, 0x4a, 0x1b, 0x63,
-	0x50, 0x83, 0x34, 0x9a, 0x1a, 0x6b, 0x2d, 0xd4, 0x6e, 0x50, 0x59, 0x9b, 0x63, 0xd8, 0xa6, 0xec,
-	0x73, 0xc1, 0xb2, 0xdc, 0x4d, 0x1d, 0x96, 0x44, 0x7b, 0x7c, 0xcc, 0xf0, 0x43, 0x80, 0xe3, 0x0a,
-	0x7a, 0x3c, 0x92, 0xa9, 0x3a, 0xd5, 0x96, 0xa4, 0x1f, 0xe1, 0xfb, 0xa0, 0x0d, 0xf9, 0x98, 0x79,
-	0x89, 0x1f, 0x33, 0x19, 0xa6, 0xd1, 0x0d, 0x01, 0x06, 0x7e, 0xcc, 0x56, 0x66, 0xc6, 0x4f, 0x98,
-	0x51, 0x6b, 0xa1, 0x76, 0xad, 0x32, 0x1d, 0x7e, 0xc2, 0xcc, 0xef, 0x08, 0xa0, 0x1b, 0x86, 0x6c,
-	0x92, 0x5f, 0x65, 0xce, 0x1d, 0xa8, 0xcb, 0x28, 0x1e, 0xc9, 0x29, 0x3a, 0x5d, 0x17, 0xb2, 0x1f,
-	0x89, 0x73, 0xe1, 0x51, 0x91, 0x7c, 0xfa, 0x3f, 0x44, 0xa7, 0x9a, 0x24, 0x62, 0x0a, 0x7e, 0x0c,
-	0x5b, 0x52, 0x64, 0x5e, 0x50, 0x0c, 0xab, 0x1e, 0x55, 0xf6, 0xe8, 0x15, 0xee, 0x15, 0x43, 0xd9,
-	0x67, 0x40, 0x3d, 0x1c, 0x73, 0x96, 0xe4, 0x99, 0x71, 0xa3, 0x55, 0x6b, 0xeb, 0xf4, 0x5c, 0x9a,
-	0x4f, 0x01, 0x28, 0xfb, 0xc8, 0xc2, 0xab, 0xac, 0x69, 0x3a, 0xa0, 0x89, 0x36, 0x4b, 0x64, 0x5f,
-	0xdc, 0x19, 0x5d, 0xda, 0xf9, 0x2e, 0x6c, 0x54, 0x3b, 0xaf, 0x6e, 0x53, 0x97, 0xba, 0x1f, 0x89,
-	0x77, 0x89, 0xfc, 0xdc, 0x97, 0x17, 0x69, 0x50, 0x59, 0x9b, 0x3d, 0x68, 0xac, 0x42, 0xbb, 0xe1,
-	0xb5, 0x72, 0x9f, 0x7c, 0x45, 0x70, 0xf3, 0xc2, 0x2f, 0xc0, 0x0f, 0xc0, 0x38, 0x70, 0x5e, 0x79,
-	0xd4, 0xfe, 0x70, 0x68, 0x3b, 0xae, 0xe7, 0xbe, 0xf3, 0x1c, 0x7b, 0xb0, 0xeb, 0xed, 0xf5, 0xdf,
-	0xda, 0x4d, 0x05, 0xdf, 0x82, 0x2d, 0xe1, 0x76, 0x2d, 0xcb, 0x7e, 0xef, 0x56, 0x10, 0x9d, 0x43,
-	0x6a, 0xbf, 0xb1, 0xad, 0x25, 0x5c, 0xc3, 0x18, 0x36, 0x05, 0x14, 0xca, 0xb3, 0x5e, 0x1f, 0x0e,
-	0xf6, 0x9b, 0x35, 0x7c, 0x1b, 0xf0, 0x65, 0xe6, 0x75, 0xad, 0xfd, 0xa6, 0xda, 0x7b, 0x39, 0x9b,
-	0x13, 0xe5, 0x74, 0x4e, 0x94, 0xb3, 0x39, 0x41, 0x7f, 0xe7, 0x04, 0x7d, 0x29, 0x09, 0xfa, 0x51,
-	0x12, 0xf4, 0xb3, 0x24, 0xe8, 0x57, 0x49, 0xd0, 0xac, 0x24, 0xe8, 0x77, 0x49, 0xd0, 0x9f, 0x92,
-	0x28, 0x67, 0x25, 0x41, 0xdf, 0x16, 0x44, 0x99, 0x2d, 0x88, 0x72, 0xba, 0x20, 0x4a, 0xb0, 0x2e,
-	0xbf, 0xfa, 0x8b, 0x7f, 0x01, 0x00, 0x00, 0xff, 0xff, 0x1d, 0xa5, 0x23, 0x38, 0x30, 0x03, 0x00,
-	0x00,
+var fileDescriptor_message_fff444b2253a676a = []byte{
+	// 602 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x54, 0xbf, 0x6f, 0xd3, 0x40,
+	0x14, 0xf6, 0x35, 0x69, 0x53, 0x3f, 0xe2, 0xd4, 0x1c, 0x3f, 0xea, 0x82, 0x38, 0x45, 0x96, 0x40,
+	0x51, 0x25, 0x52, 0x09, 0x56, 0x96, 0xd4, 0xb9, 0xa6, 0xa1, 0xa4, 0x85, 0x73, 0xca, 0x6a, 0x39,
+	0xf6, 0x25, 0x75, 0x69, 0xe2, 0x50, 0xdb, 0x43, 0x3b, 0xf1, 0x27, 0xf0, 0x5f, 0x00, 0xff, 0x01,
+	0x7f, 0x02, 0x63, 0x07, 0x86, 0x8e, 0xc4, 0x5d, 0x18, 0x3b, 0x32, 0xa2, 0x3b, 0x37, 0x6e, 0x8a,
+	0x04, 0x54, 0x2c, 0x6c, 0xf7, 0x7d, 0xdf, 0xbb, 0xef, 0x7b, 0x2f, 0xef, 0x62, 0xd0, 0x86, 0x3c,
+	0x8a, 0xdc, 0x01, 0xaf, 0x8f, 0x0f, 0xc3, 0x38, 0xc4, 0xc5, 0xa1, 0x1b, 0x8c, 0xee, 0x3d, 0x1e,
+	0x04, 0xf1, 0x5e, 0xd2, 0xab, 0x7b, 0xe1, 0x70, 0x6d, 0x10, 0x0e, 0xc2, 0x35, 0x29, 0xf6, 0x92,
+	0xbe, 0x44, 0x12, 0xc8, 0x53, 0x76, 0xc9, 0x6c, 0x42, 0xa9, 0x93, 0xb9, 0xe0, 0x87, 0x50, 0x8c,
+	0x8f, 0xc6, 0xdc, 0x40, 0x55, 0x54, 0xab, 0x3c, 0xb9, 0x59, 0x17, 0x76, 0xf5, 0x0b, 0xb1, 0x7b,
+	0x34, 0xe6, 0x4c, 0xca, 0x18, 0x43, 0xb1, 0x17, 0xfa, 0x47, 0xc6, 0x5c, 0x15, 0xd5, 0xca, 0x4c,
+	0x9e, 0xcd, 0x7d, 0x58, 0x62, 0xfc, 0x6d, 0xc2, 0xa3, 0xd8, 0xe6, 0x23, 0x7f, 0x23, 0x38, 0xe0,
+	0xf8, 0x01, 0xc0, 0x61, 0x46, 0x39, 0x81, 0x2f, 0x3d, 0x35, 0xa6, 0x5e, 0x30, 0x6d, 0x1f, 0xdf,
+	0x07, 0xb5, 0x1f, 0x1c, 0x70, 0x67, 0xe4, 0x0e, 0xb9, 0xb4, 0x52, 0xd9, 0xa2, 0x20, 0xb6, 0xdd,
+	0x21, 0xcf, 0xc5, 0x28, 0x38, 0xe6, 0x46, 0xa1, 0x8a, 0x6a, 0x85, 0x4c, 0xb4, 0x83, 0x63, 0x6e,
+	0x7e, 0x42, 0x50, 0x69, 0x78, 0x1e, 0x1f, 0x5f, 0x3b, 0x6b, 0x19, 0x4a, 0xd2, 0x2e, 0xf0, 0x65,
+	0x92, 0xc6, 0x16, 0x04, 0x6c, 0xfb, 0xe2, 0x9e, 0xb7, 0x97, 0x8c, 0xde, 0x5c, 0x06, 0x69, 0x4c,
+	0x95, 0x8c, 0x48, 0xc2, 0x8f, 0x60, 0x49, 0x82, 0xc8, 0xe9, 0x25, 0xfd, 0xac, 0xa6, 0x28, 0x6b,
+	0xb4, 0x8c, 0x5e, 0x4f, 0xfa, 0xb2, 0xce, 0x80, 0x92, 0x77, 0x10, 0xf0, 0x51, 0x1c, 0x19, 0xf3,
+	0xd5, 0x42, 0x4d, 0x63, 0x53, 0x68, 0xae, 0x41, 0x85, 0xf1, 0x7d, 0xee, 0x5d, 0xb7, 0x55, 0xd3,
+	0x06, 0x55, 0x94, 0x59, 0xc2, 0x7f, 0xb6, 0x6f, 0x74, 0xa5, 0xef, 0x15, 0x58, 0xcc, 0xfa, 0xce,
+	0x27, 0x2a, 0x49, 0xdc, 0xf6, 0xc5, 0x76, 0x7c, 0x37, 0x76, 0xe5, 0x30, 0x65, 0x26, 0xcf, 0xe6,
+	0x3a, 0x94, 0x73, 0xd3, 0x86, 0xf7, 0x4f, 0xbe, 0xe6, 0x07, 0x24, 0x46, 0x91, 0x6d, 0xb6, 0x78,
+	0x2c, 0x47, 0xb9, 0xb2, 0x42, 0xf4, 0xcb, 0x0a, 0xff, 0xdf, 0x6f, 0x4e, 0x41, 0xcb, 0x9e, 0xc7,
+	0xb4, 0xcf, 0xdf, 0x8e, 0xfb, 0xc7, 0x67, 0x56, 0x03, 0x2d, 0x5b, 0xdd, 0xdf, 0x6c, 0x56, 0x9b,
+	0x50, 0xec, 0x84, 0x3e, 0xc7, 0x1a, 0xa8, 0x9d, 0x9d, 0x26, 0x75, 0x6c, 0xba, 0xdd, 0xd4, 0x15,
+	0xac, 0x43, 0x59, 0x42, 0x46, 0x2d, 0xda, 0x7e, 0x4d, 0x75, 0x84, 0xcb, 0xb0, 0x28, 0x99, 0x16,
+	0xed, 0xea, 0x73, 0x79, 0xf9, 0xe6, 0x8e, 0xdd, 0xd5, 0x0b, 0xab, 0x5f, 0x11, 0xdc, 0x98, 0xf9,
+	0xb3, 0xe1, 0x15, 0xb8, 0xd3, 0xb1, 0x5b, 0x0e, 0xa3, 0xaf, 0x76, 0xa9, 0xdd, 0x95, 0xa6, 0xce,
+	0x46, 0xfb, 0x05, 0xd5, 0x15, 0x6c, 0xc0, 0x6d, 0x21, 0x35, 0x2c, 0x8b, 0xbe, 0x9c, 0x55, 0xd0,
+	0x54, 0x61, 0xf4, 0x39, 0xb5, 0x66, 0x95, 0x39, 0x8c, 0xa1, 0x22, 0x14, 0x81, 0x1c, 0x6b, 0x73,
+	0x77, 0x7b, 0x4b, 0x2f, 0xe0, 0xbb, 0x80, 0xaf, 0x72, 0x4e, 0xc3, 0xda, 0xd2, 0x8b, 0x97, 0x2e,
+	0x59, 0x74, 0x8b, 0x76, 0x33, 0x97, 0x79, 0xbc, 0x0c, 0xb7, 0x66, 0x92, 0x73, 0x61, 0x61, 0x2a,
+	0x5c, 0x04, 0xe7, 0x42, 0x69, 0xfd, 0xd9, 0xc9, 0x84, 0x28, 0xa7, 0x13, 0xa2, 0x9c, 0x4f, 0x08,
+	0xfa, 0x31, 0x21, 0xe8, 0x5d, 0x4a, 0xd0, 0xc7, 0x94, 0xa0, 0xcf, 0x29, 0x41, 0x5f, 0x52, 0x82,
+	0x4e, 0x52, 0x82, 0xbe, 0xa5, 0x04, 0x7d, 0x4f, 0x89, 0x72, 0x9e, 0x12, 0xf4, 0xfe, 0x8c, 0x28,
+	0x27, 0x67, 0x44, 0x39, 0x3d, 0x23, 0x4a, 0x6f, 0x41, 0x7e, 0xa4, 0x9e, 0xfe, 0x0c, 0x00, 0x00,
+	0xff, 0xff, 0xb6, 0x53, 0x84, 0xa1, 0xea, 0x04, 0x00, 0x00,
 }

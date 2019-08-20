@@ -1,19 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"math/rand"
 	"os"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	nknsdk "github.com/nknorg/nkn-sdk-go"
 	"github.com/nknorg/nkn/node/consequential"
-	"github.com/nknorg/nkn/pb"
 )
 
 const (
@@ -22,52 +18,35 @@ const (
 )
 
 type Sender struct {
-	addr        string
-	clients     []*nknsdk.Client
-	ctrlMsgChan chan *pb.InboundMessage
-	ackChan     sync.Map
-	numWorkers  uint32
+	*transmitter
+	ackChan    sync.Map
+	numWorkers uint32
 }
 
-func NewSender(addr string, clients []*nknsdk.Client, numWorkers uint32) *Sender {
-	return &Sender{
-		addr:        addr,
-		clients:     clients,
-		ctrlMsgChan: make(chan *pb.InboundMessage, 100),
-		numWorkers:  numWorkers,
+func NewSender(config *Config) (*Sender, error) {
+	switch config.Mode {
+	case MODE_SEND:
+	case MODE_HOST:
+	default:
+		return nil, fmt.Errorf("unknown sender mode: %v", config.Mode)
 	}
-}
 
-func getFilePath(scanner *bufio.Scanner) (string, os.FileInfo, error) {
-	fmt.Print("\n\nEnter file path to send: ")
-	scanner.Scan()
-	filePath := scanner.Text()
-	filePath = strings.Trim(filePath, " ")
-	fileInfo, err := os.Stat(filePath)
+	t, err := newTransmitter(config.Mode, config.Seed, config.Identifier, int(config.NumClients))
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
-	if fileInfo.IsDir() {
-		return "", nil, fmt.Errorf("%s is a directory", filePath)
-	}
-	fmt.Printf("Name: %s\nSize: %d bytes\n", fileInfo.Name(), fileInfo.Size())
-	return filePath, fileInfo, nil
-}
 
-func getReceiverAddr(scanner *bufio.Scanner) (string, error) {
-	fmt.Print("Enter receiver address: ")
-	scanner.Scan()
-	receiverAddr := scanner.Text()
-	receiverAddr = strings.Trim(receiverAddr, " ")
-	if len(receiverAddr) == 0 {
-		return "", fmt.Errorf("empty receiver address")
+	sender := &Sender{
+		transmitter: t,
+		numWorkers:  config.NumWorkers,
 	}
-	return receiverAddr, nil
+
+	return sender, nil
 }
 
 func (sender *Sender) RequestToSendFile(receiverAddr, fileName string, fileSize int64) (uint32, uint32, uint32, []uint32, error) {
 	requestID := rand.Uint32()
-	msg, err := NewRequestToSendFileMessage(requestID, fileName, fileSize)
+	msg, err := NewRequestSendFileMessage(requestID, fileName, fileSize)
 	if err != nil {
 		return 0, 0, 0, nil, err
 	}
@@ -77,46 +56,42 @@ func (sender *Sender) RequestToSendFile(receiverAddr, fileName string, fileSize 
 			continue
 		}
 		fmt.Printf("Request to send file %v (%d bytes) to %s using client %d\n", fileName, fileSize, receiverAddr, i)
-		addr := addIdentifier(receiverAddr, i, true)
+		addr := addIdentifier(receiverAddr, i, sender.getRemoteMode())
 		err = sender.clients[i].Send([]string{addr}, msg, 0)
 		if err != nil {
-			return 0, 0, 0, nil, err
+			fmt.Printf("Send RequestSendFile msg using client %d error: %v\n", i, err)
+			continue
 		}
 		timeout := time.After(5 * time.Second)
 		for {
 			select {
 			case reply := <-sender.ctrlMsgChan:
-				msgBody, msgType, err := ParseMessage(reply.Payload)
-				if err != nil {
-					fmt.Printf("Parse message error: %v\n", err)
-					break
-				}
-				switch msgType {
-				case MSG_ACCEPT_FILE:
-					acceptFile := msgBody.(*AcceptFile)
-					if acceptFile.RequestId != requestID {
-						fmt.Printf("Ignore AcceptFile message from %v with incorrect request id %d\n", reply.Src, acceptFile.RequestId)
+				switch reply.msgType {
+				case MSG_ACCEPT_SEND_FILE:
+					acceptSendFile := reply.msgBody.(*AcceptSendFile)
+					if acceptSendFile.RequestId != requestID {
+						fmt.Printf("Ignore AcceptSendFile message from %v with incorrect request id %d\n", reply.src, acceptSendFile.RequestId)
 						continue
 					}
 					fmt.Printf("Receiver %s accepted file %v (%d bytes)\n", receiverAddr, fileName, fileSize)
 					fmt.Printf(
 						"File ID: %d\nChunkSize: %d\nChunksBufSize: %d\nReceiverClients: %d\n",
-						acceptFile.FileId, acceptFile.ChunkSize, acceptFile.ChunksBufSize, len(acceptFile.Clients),
+						acceptSendFile.FileId, acceptSendFile.ChunkSize, acceptSendFile.ChunksBufSize, len(acceptSendFile.Clients),
 					)
-					return acceptFile.FileId, acceptFile.ChunkSize, acceptFile.ChunksBufSize, acceptFile.Clients, nil
-				case MSG_REJECT_FILE:
-					rejectFile := msgBody.(*RejectFile)
-					if rejectFile.RequestId != requestID {
-						fmt.Printf("Ignore RejectFile message from %v with incorrect request id %d\n", reply.Src, rejectFile.RequestId)
+					return acceptSendFile.FileId, acceptSendFile.ChunkSize, acceptSendFile.ChunksBufSize, acceptSendFile.Clients, nil
+				case MSG_REJECT_SEND_FILE:
+					rejectSendFile := reply.msgBody.(*RejectSendFile)
+					if rejectSendFile.RequestId != requestID {
+						fmt.Printf("Ignore RejectSendFile message from %v with incorrect request id %d\n", reply.src, rejectSendFile.RequestId)
 						continue
 					}
-					return 0, 0, 0, nil, fmt.Errorf("Receiver %s rejected file %s", receiverAddr, fileName)
+					return 0, 0, 0, nil, fmt.Errorf("receiver %s rejected file %s", receiverAddr, fileName)
 				default:
-					fmt.Printf("Ignore message type %v\n", msgType)
+					fmt.Printf("Ignore message type %v\n", reply.msgType)
 					continue
 				}
 			case <-timeout:
-				fmt.Println("Wait for accept file msg timeout")
+				fmt.Println("Wait for accept send file msg timeout")
 				break
 			}
 			break
@@ -142,12 +117,8 @@ func (sender *Sender) SendFile(receiverAddr, filePath string, fileID, chunkSize,
 	fileName := fileInfo.Name()
 	fileSize := fileInfo.Size()
 	numChunks := uint32((fileSize-1)/int64(chunkSize)) + 1
-	senderClients := make([]uint32, 0)
-	for i := 0; i < len(sender.clients); i++ {
-		if sender.clients[i] != nil {
-			senderClients = append(senderClients, uint32(i))
-		}
-	}
+	senderClients := sender.getAvailableClientIDs()
+
 	var bytesSent, bytesConfirmed int64
 
 	sendChunk := func(workerID, chunkID uint32) (interface{}, bool) {
@@ -167,7 +138,7 @@ func (sender *Sender) SendFile(receiverAddr, filePath string, fileID, chunkSize,
 		idx := int(workerID) % (len(senderClients) * len(receiverClients))
 		senderClientID := senderClients[idx%len(senderClients)]
 		receiverClientID := receiverClients[idx/len(senderClients)]
-		addr := addIdentifier(receiverAddr, int(receiverClientID), true)
+		addr := addIdentifier(receiverAddr, int(receiverClientID), sender.getRemoteMode())
 		err = sender.clients[senderClientID].Send([]string{addr}, msg, 0)
 		if err != nil {
 			fmt.Printf("Send message from client %d to receiver client %d error: %v\n", senderClientID, receiverClientID, err)
@@ -236,7 +207,21 @@ func (sender *Sender) SendFile(receiverAddr, filePath string, fileID, chunkSize,
 	finished = true
 	duration := float64(time.Since(timeStart)) / float64(time.Second)
 	fmt.Printf("Finish sending file %v (%d bytes) to %s\n", fileName, fileSize, receiverAddr)
-	fmt.Printf("Time used: %.1f s, %.0f bytes/s\n", duration, float64(fileSize)/duration)
+	fmt.Printf("Time used: %.1f s, %.0f bytes/s\n\n", duration, float64(fileSize)/duration)
+
+	return nil
+}
+
+func (sender *Sender) RequestAndSendFile(receiverAddr, filePath, fileName string, fileSize int64) error {
+	fileID, chunkSize, chunksBufSize, availableClients, err := sender.RequestToSendFile(receiverAddr, fileName, fileSize)
+	if err != nil {
+		return fmt.Errorf("request to send file error: %v", err)
+	}
+
+	err = sender.SendFile(receiverAddr, filePath, fileID, chunkSize, chunksBufSize, availableClients)
+	if err != nil {
+		return fmt.Errorf("send file error: %v", err)
+	}
 
 	return nil
 }
@@ -249,16 +234,27 @@ func (sender *Sender) startHandleMsg() {
 		go func(i int) {
 			for {
 				msg := <-sender.clients[i].OnMessage
+				if msg == nil {
+					continue
+				}
 				msgBody, msgType, err := ParseMessage(msg.Payload)
 				if err != nil {
 					fmt.Printf("Parse message error: %v\n", err)
 					continue
 				}
 				switch msgType {
-				case MSG_ACCEPT_FILE:
-					fallthrough
-				case MSG_REJECT_FILE:
-					sender.ctrlMsgChan <- msg
+				case MSG_ACCEPT_SEND_FILE, MSG_REJECT_SEND_FILE, MSG_REQUEST_GET_FILE:
+					cm := &ctrlMsg{
+						msgType:    msgType,
+						msgBody:    msgBody,
+						src:        msg.Src,
+						receivedBy: i,
+					}
+					select {
+					case sender.ctrlMsgChan <- cm:
+					default:
+						fmt.Printf("Control msg chan full, disgarding msg\n")
+					}
 				case MSG_FILE_CHUNK_ACK:
 					fileChunkAck := msgBody.(*FileChunkAck)
 					if v, ok := sender.ackChan.Load(chanKey(fileChunkAck.FileId, fileChunkAck.ChunkId)); ok {
@@ -275,33 +271,94 @@ func (sender *Sender) startHandleMsg() {
 	}
 }
 
-func (sender *Sender) Start() {
-	fmt.Printf("Start sender at %s\n", sender.addr)
-	sender.startHandleMsg()
-	scanner := bufio.NewScanner(os.Stdin)
+func (sender *Sender) startSendMode() {
+	fmt.Printf("Start sender in send mode at %s\n", sender.addr)
+}
+
+func (sender *Sender) shouldAcceptGetRequest(filepath string) error {
+	ok, err := allowPath(filepath)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("path %s is not allowd", filepath)
+	}
+
+	_, err = os.Stat(filepath)
+
+	if os.IsNotExist(err) {
+		return fmt.Errorf("file %s does not exist", filepath)
+	}
+
+	return nil
+}
+
+func (sender *Sender) startHostMode() {
+	fmt.Printf("Start sender in host mode at %s\n", sender.addr)
 	for {
-		filePath, fileInfo, err := getFilePath(scanner)
-		if err != nil {
-			fmt.Printf("Get file path error: %v\n", err)
-			continue
-		}
-
-		receiverAddr, err := getReceiverAddr(scanner)
-		if err != nil {
-			fmt.Printf("Get receiver address error: %v\n", err)
-			continue
-		}
-
-		fileID, chunkSize, chunksBufSize, availableClients, err := sender.RequestToSendFile(receiverAddr, fileInfo.Name(), fileInfo.Size())
-		if err != nil {
-			fmt.Printf("Request to send file error: %v\n", err)
-			continue
-		}
-
-		err = sender.SendFile(receiverAddr, filePath, fileID, chunkSize, chunksBufSize, availableClients)
-		if err != nil {
-			fmt.Printf("Send file error: %v\n", err)
+		msg := <-sender.ctrlMsgChan
+		switch msg.msgType {
+		case MSG_REQUEST_GET_FILE:
+			requestGetFile := msg.msgBody.(*RequestGetFile)
+			if err := sender.shouldAcceptGetRequest(requestGetFile.FileName); err == nil {
+				fileInfo, err := os.Stat(requestGetFile.FileName)
+				if err != nil {
+					fmt.Printf("Get file info of %s error: %v\n", requestGetFile.FileName, err)
+					continue
+				}
+				fileSize := fileInfo.Size()
+				fmt.Printf("Sending file %s (%d bytes) with ID %d\n", requestGetFile.FileName, fileSize, requestGetFile.FileId)
+				reply, err := NewAcceptGetFileMessage(requestGetFile.FileId, fileSize)
+				if err != nil {
+					fmt.Printf("Create AcceptGetFile message error: %v\n", err)
+					continue
+				}
+				err = sender.clients[msg.receivedBy].Send([]string{msg.src}, reply, 0)
+				if err != nil {
+					fmt.Printf("Client %d send message error: %v\n", msg.receivedBy, err)
+					continue
+				}
+				baseAddr, err := removeIdentifier(msg.src)
+				if err != nil {
+					fmt.Printf("Remove identifier error: %v\n", err)
+					continue
+				}
+				go func() {
+					err := sender.SendFile(baseAddr, requestGetFile.FileName, requestGetFile.FileId, requestGetFile.ChunkSize, requestGetFile.ChunksBufSize, requestGetFile.Clients)
+					if err != nil {
+						fmt.Printf("Send file error: %v\n", err)
+					}
+				}()
+			} else {
+				fmt.Printf("Reject to get file %s: %v\n", requestGetFile.FileName, err)
+				reply, err := NewRejectGetFileMessage(requestGetFile.FileId)
+				if err != nil {
+					fmt.Printf("Create RejectGetFile message error: %v\n", err)
+					continue
+				}
+				err = sender.clients[msg.receivedBy].Send([]string{msg.src}, reply, 0)
+				if err != nil {
+					fmt.Printf("Client %d send message error: %v\n", msg.receivedBy, err)
+					continue
+				}
+				continue
+			}
+		default:
+			fmt.Printf("Ignore message type %v\n", msg.msgType)
 			continue
 		}
 	}
+}
+
+func (sender *Sender) Start(mode Mode) error {
+	sender.startHandleMsg()
+	switch mode {
+	case MODE_SEND:
+		go sender.startSendMode()
+	case MODE_HOST:
+		go sender.startHostMode()
+	default:
+		return fmt.Errorf("unknown sender mode %v", mode)
+	}
+	return nil
 }

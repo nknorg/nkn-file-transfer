@@ -15,12 +15,22 @@ option (gogoproto.testgen_all) = true;
 option (gogoproto.equal_all) = true;
 option (gogoproto.populate_all) = true;
 
+enum Mode {
+  MODE_SEND = 0;
+  MODE_RECEIVE = 1;
+  MODE_GET = 2;
+  MODE_HOST = 3;
+}
+
 enum MessageType {
-  MSG_REQUEST_TO_SEND_FILE = 0;
-  MSG_ACCEPT_FILE = 1;
-  MSG_REJECT_FILE = 2;
+  MSG_REQUEST_SEND_FILE = 0;
+  MSG_ACCEPT_SEND_FILE = 1;
+  MSG_REJECT_SEND_FILE = 2;
   MSG_FILE_CHUNK = 3;
   MSG_FILE_CHUNK_ACK = 4;
+  MSG_REQUEST_GET_FILE = 5;
+  MSG_ACCEPT_GET_FILE = 6;
+  MSG_REJECT_GET_FILE = 7;
 }
 
 message Message {
@@ -28,13 +38,13 @@ message Message {
   bytes body = 2;
 }
 
-message RequestToSendFile {
+message RequestSendFile {
   uint32 request_id = 1;
   string file_name = 2;
   int64 file_size = 3;
 }
 
-message AcceptFile {
+message AcceptSendFile {
   uint32 request_id = 1;
   uint32 file_id = 2;
   uint32 chunk_size = 3;
@@ -42,7 +52,7 @@ message AcceptFile {
   repeated uint32 clients = 5;
 }
 
-message RejectFile {
+message RejectSendFile {
   uint32 request_id = 1;
 }
 
@@ -55,4 +65,21 @@ message FileChunk {
 message FileChunkAck {
   uint32 file_id = 1;
   uint32 chunk_id = 2;
+}
+
+message RequestGetFile {
+  string file_name = 1;
+  uint32 file_id = 2;
+  uint32 chunk_size = 3;
+  uint32 chunks_buf_size = 4;
+  repeated uint32 clients = 5;
+}
+
+message AcceptGetFile {
+  uint32 file_id = 1;
+  int64 file_size = 3;
+}
+
+message RejectGetFile {
+  uint32 file_id = 1;
 }
