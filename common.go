@@ -3,11 +3,16 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	nknsdk "github.com/nknorg/nkn-sdk-go"
+	"github.com/nknorg/nkn/crypto"
+	"github.com/nknorg/nkn/util/address"
 	"github.com/nknorg/nkn/vault"
 )
 
@@ -58,27 +63,110 @@ var seedNodeList = []string{
 	"http://mainnet-seed-0044.nkn.org:30003",
 }
 
-const maxRetries = 3
+const (
+	maxRetries     = 3
+	ctrlMsgChanLen = 128
+)
+
+type Config struct {
+	Mode          Mode
+	Seed          []byte
+	Identifier    string
+	NumClients    uint32
+	NumWorkers    uint32
+	ChunkSize     uint32
+	ChunksBufSize uint32
+}
+
+type transmitter struct {
+	mode        Mode
+	addr        string
+	clients     []*nknsdk.Client
+	ctrlMsgChan chan *ctrlMsg
+}
+
+func newTransmitter(mode Mode, seed []byte, identifier string, numClients int) (*transmitter, error) {
+	var account *vault.Account
+	var err error
+	if len(seed) > 0 {
+		privateKey := crypto.GetPrivateKeyFromSeed(seed)
+		if err = crypto.CheckPrivateKey(privateKey); err != nil {
+			return nil, fmt.Errorf("invalid secret seed: %v", err)
+		}
+
+		account, err = vault.NewAccountWithPrivatekey(privateKey)
+		if err != nil {
+			return nil, fmt.Errorf("open account from secret seed error: %v", err)
+		}
+	} else {
+		account, err = vault.NewAccount()
+		if err != nil {
+			return nil, fmt.Errorf("new account error: %v", err)
+		}
+	}
+
+	addr := address.MakeAddressString(account.PubKey().EncodePoint(), identifier)
+
+	clients, err := CreateClients(account, identifier, numClients, mode)
+	if err != nil {
+		return nil, fmt.Errorf("create clients error: %v", err)
+	}
+
+	t := &transmitter{
+		mode:        mode,
+		addr:        addr,
+		clients:     clients,
+		ctrlMsgChan: make(chan *ctrlMsg, ctrlMsgChanLen),
+	}
+
+	return t, nil
+}
+
+func (t *transmitter) getAvailableClientIDs() []uint32 {
+	availableClients := make([]uint32, 0)
+	for i := 0; i < len(t.clients); i++ {
+		if t.clients[i] != nil {
+			availableClients = append(availableClients, uint32(i))
+		}
+	}
+	return availableClients
+}
+
+func (t *transmitter) getRemoteMode() Mode {
+	switch t.mode {
+	case MODE_SEND:
+		return MODE_RECEIVE
+	case MODE_RECEIVE:
+		return MODE_SEND
+	case MODE_GET:
+		return MODE_HOST
+	case MODE_HOST:
+		return MODE_GET
+	}
+	panic(fmt.Errorf("Unknown mode %v", t.mode))
+}
 
 func chanKey(fileID, chunkID uint32) string {
 	return fmt.Sprintf("%d-%d", fileID, chunkID)
 }
 
-func getIdentifier(i int, isReceiver bool) string {
-	identifier := strconv.Itoa(i)
-	if isReceiver {
-		identifier += ".receiver"
-	} else {
-		identifier += ".sender"
+func getIdentifier(clientID int, mode Mode) string {
+	return strconv.Itoa(clientID) + "." + strconv.Itoa(int(mode))
+}
+
+func addIdentifier(baseAddr string, clientID int, mode Mode) string {
+	return getIdentifier(clientID, mode) + "." + baseAddr
+}
+
+func removeIdentifier(addr string) (string, error) {
+	subs := strings.SplitN(addr, ".", 3)
+	if len(subs) != 3 {
+		return "", fmt.Errorf("invalid address %s", addr)
 	}
-	return identifier
+	return subs[2], nil
 }
 
-func addIdentifier(baseAddr string, i int, isReceiver bool) string {
-	return getIdentifier(i, isReceiver) + "." + baseAddr
-}
-
-func CreateClients(account *vault.Account, baseIdentifier string, numClients int, isReceiver bool) ([]*nknsdk.Client, error) {
+func CreateClients(account *vault.Account, baseIdentifier string, numClients int, mode Mode) ([]*nknsdk.Client, error) {
 	var wg sync.WaitGroup
 	clients := make([]*nknsdk.Client, numClients)
 
@@ -89,7 +177,7 @@ func CreateClients(account *vault.Account, baseIdentifier string, numClients int
 		go func(i int) {
 			defer wg.Done()
 
-			identifier := getIdentifier(i, isReceiver)
+			identifier := getIdentifier(i, mode)
 			if len(baseIdentifier) > 0 {
 				identifier += "." + baseIdentifier
 			}
@@ -132,4 +220,27 @@ func CreateClients(account *vault.Account, baseIdentifier string, numClients int
 	fmt.Printf("Created %d clients\n", created)
 
 	return clients, nil
+}
+
+func allowPath(path string) (bool, error) {
+	if strings.Contains(path, "..") {
+		return false, nil
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return false, err
+	}
+
+	relPath, err := filepath.Rel(wd, absPath)
+	if err != nil {
+		return false, err
+	}
+
+	return !strings.HasPrefix(relPath, ".."), nil
 }

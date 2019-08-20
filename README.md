@@ -17,18 +17,32 @@ go get -u github.com/nknorg/nkn-file-transfer
 Then you can use
 
 ```shell
-go run github.com/nknorg/nkn-file-transfer
+go run github.com/nknorg/nkn-file-transfer -$MODE
 ```
 
-to run it as sender, or use
+to run it, where `$MODE` can be one of `send`, `receive`, `get`, `host`. `send`
+mode should be used with `receive` mode to send file to peer, while `get` mode
+should be used with `host` mode to fetch file to peer.
 
-```shell
-go run github.com/nknorg/nkn-file-transfer -receive
+When starting as `receive` mode or `host`, you will see something like `Start
+receiver in receive mode at xxx` or `Start sender in host mode at xxx`, where
+`xxx` will be your NKN address, and you will need that address when sending or
+getting files from other peers.
+
+You can enable multiple modes together. For example, you can enable `receive`
+mode together with `host` mode to create a file storage server that can accept
+both send request (equivalent to HTTP PUT) and get request (equivalent to HTTP
+GET), and you can use `send` mode with `get` mode to create a client that can
+upload to (`send`) and download from (`get`) the aforementioned server. Actually
+if you enable both `send` mode and `get` mode together, you can use
 ```
-
-to run it as receiver. When starting as receiver mode, you will see something
-like `Start receiver at xxx`, where `xxx` will be your receiver address (NKN
-address), and you need that address when sending a file.
+GET hostAddress/fileName
+```
+to download file, and
+```
+PUT receiveAddress/fileName localFilePath
+```
+to upload file.
 
 By default a random NKN address (key pair) will be generated each time. You can
 use a specific address by passing `-seed` and `-identifier` argument, same as a
