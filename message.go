@@ -1,21 +1,121 @@
 package main
 
 import (
+	"crypto/rand"
+	"errors"
 	"fmt"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/nknorg/nkn/crypto/ed25519"
+	"github.com/nknorg/nkn/pb"
+	"github.com/nknorg/nkn/util/address"
+	"golang.org/x/crypto/nacl/box"
 )
 
 type ctrlMsg struct {
 	msgType    MessageType
 	msgBody    interface{}
 	src        string
-	receivedBy int
+	receivedBy uint32
 }
 
-func ParseMessage(buf []byte) (interface{}, MessageType, error) {
+func encryptMessage(message []byte, sharedKey *[sharedKeySize]byte) ([]byte, error) {
+	var nonce [nonceSize]byte
+	_, err := rand.Read(nonce[:])
+	if err != nil {
+		return nil, err
+	}
+
+	encrypted := make([]byte, len(message)+box.Overhead+nonceSize)
+	copy(encrypted[:nonceSize], nonce[:])
+	box.SealAfterPrecomputation(encrypted[nonceSize:nonceSize], message, &nonce, sharedKey)
+
+	return encrypted, nil
+}
+
+func decryptMessage(message []byte, sharedKey *[sharedKeySize]byte) ([]byte, error) {
+	if len(message) < nonceSize+box.Overhead {
+		return nil, fmt.Errorf("encrypted message should have at least %d bytes", nonceSize+box.Overhead)
+	}
+
+	var nonce [nonceSize]byte
+	copy(nonce[:], message[:nonceSize])
+	decrypted := make([]byte, len(message)-nonceSize-box.Overhead)
+	_, ok := box.OpenAfterPrecomputation(decrypted[:0], message[nonceSize:], &nonce, sharedKey)
+	if !ok {
+		return nil, errors.New("decrypt message failed")
+	}
+
+	return decrypted, nil
+}
+
+func (t *transmitter) getOrComputeSharedKey(remotePublicKey []byte) (*[sharedKeySize]byte, error) {
+	if v, ok := t.sharedKeyCache.Get(remotePublicKey); ok {
+		if sharedKey, ok := v.(*[sharedKeySize]byte); ok {
+			return sharedKey, nil
+		}
+	}
+
+	if len(remotePublicKey) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("public key length is %d, expecting %d", len(remotePublicKey), ed25519.PublicKeySize)
+	}
+
+	var pk [ed25519.PublicKeySize]byte
+	copy(pk[:], remotePublicKey)
+	curve25519PublicKey, ok := ed25519.PublicKeyToCurve25519PublicKey(&pk)
+	if !ok {
+		return nil, fmt.Errorf("converting public key %x to curve25519 public key failed", remotePublicKey)
+	}
+
+	var sk [ed25519.PrivateKeySize]byte
+	copy(sk[:], t.account.PrivateKey)
+	curve25519PrivateKey := ed25519.PrivateKeyToCurve25519PrivateKey(&sk)
+
+	var sharedKey [sharedKeySize]byte
+	box.Precompute(&sharedKey, curve25519PublicKey, curve25519PrivateKey)
+
+	t.sharedKeyCache.Set(remotePublicKey, &sharedKey)
+
+	return &sharedKey, nil
+}
+
+func (t *transmitter) send(clientID uint32, dest string, msg []byte) error {
+	_, destPublicKey, _, err := address.ParseClientAddress(dest)
+	if err != nil {
+		return err
+	}
+
+	sharedKey, err := t.getOrComputeSharedKey(destPublicKey)
+	if err != nil {
+		return err
+	}
+
+	encrypted, err := encryptMessage(msg, sharedKey)
+	if err != nil {
+		return err
+	}
+
+	return t.clients[clientID].Send([]string{dest}, encrypted, 0)
+}
+
+func (t *transmitter) parseMessage(pbmsg *pb.InboundMessage) (interface{}, MessageType, error) {
+	_, srcPublicKey, _, err := address.ParseClientAddress(pbmsg.Src)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	sharedKey, err := t.getOrComputeSharedKey(srcPublicKey)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	decrypted, err := decryptMessage(pbmsg.Payload, sharedKey)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	msg := &Message{}
-	err := proto.Unmarshal(buf, msg)
+	err = proto.Unmarshal(decrypted, msg)
 	if err != nil {
 		return nil, 0, err
 	}
