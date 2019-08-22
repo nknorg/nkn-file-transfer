@@ -20,6 +20,7 @@ const (
 type Sender struct {
 	*transmitter
 	ackChan    sync.Map
+	sentFiles  sync.Map
 	numWorkers uint32
 }
 
@@ -102,6 +103,11 @@ func (sender *Sender) RequestToSendFile(receiverAddr, fileName string, fileSize 
 }
 
 func (sender *Sender) SendFile(receiverAddr, filePath string, fileID, chunkSize, chunksBufSize uint32, receiverClients []uint32) error {
+	_, loaded := sender.sentFiles.LoadOrStore(fileID, struct{}{})
+	if loaded {
+		return fmt.Errorf("fileID %d has been sent", fileID)
+	}
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
