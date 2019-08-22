@@ -11,6 +11,7 @@ import (
 	"time"
 
 	nknsdk "github.com/nknorg/nkn-sdk-go"
+	"github.com/nknorg/nkn/common"
 	"github.com/nknorg/nkn/crypto"
 	"github.com/nknorg/nkn/util/address"
 	"github.com/nknorg/nkn/vault"
@@ -64,8 +65,12 @@ var seedNodeList = []string{
 }
 
 const (
-	maxRetries     = 3
-	ctrlMsgChanLen = 128
+	maxRetries                    = 3
+	ctrlMsgChanLen                = 128
+	nonceSize                     = 24
+	sharedKeySize                 = 32
+	sharedKeyCacheExpiration      = time.Hour
+	sharedKeyCacheCleanupInterval = 10 * time.Minute
 )
 
 type Config struct {
@@ -79,10 +84,12 @@ type Config struct {
 }
 
 type transmitter struct {
-	mode        Mode
-	addr        string
-	clients     []*nknsdk.Client
-	ctrlMsgChan chan *ctrlMsg
+	mode           Mode
+	addr           string
+	account        *vault.Account
+	clients        []*nknsdk.Client
+	ctrlMsgChan    chan *ctrlMsg
+	sharedKeyCache common.Cache
 }
 
 func newTransmitter(mode Mode, seed []byte, identifier string, numClients int) (*transmitter, error) {
@@ -113,10 +120,12 @@ func newTransmitter(mode Mode, seed []byte, identifier string, numClients int) (
 	}
 
 	t := &transmitter{
-		mode:        mode,
-		addr:        addr,
-		clients:     clients,
-		ctrlMsgChan: make(chan *ctrlMsg, ctrlMsgChanLen),
+		mode:           mode,
+		addr:           addr,
+		account:        account,
+		clients:        clients,
+		ctrlMsgChan:    make(chan *ctrlMsg, ctrlMsgChanLen),
+		sharedKeyCache: common.NewGoCache(sharedKeyCacheExpiration, sharedKeyCacheCleanupInterval),
 	}
 
 	return t, nil
@@ -200,6 +209,12 @@ func CreateClients(account *vault.Account, baseIdentifier string, numClients int
 				select {
 				case <-client.OnConnect:
 					clients[i] = client
+					fmt.Printf("Client %s connect to node %s\n", client.Address, client.GetNodeInfo().Address)
+					go func(client *nknsdk.Client) {
+						for _ = range client.OnConnect {
+							fmt.Printf("Client %s connect to node %s\n", client.Address, client.GetNodeInfo().Address)
+						}
+					}(client)
 					return
 				case <-time.After(3 * time.Second):
 					fmt.Printf("Sender %d connect timeout, retry now...\n", i)

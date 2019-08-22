@@ -58,7 +58,7 @@ func (sender *Sender) RequestToSendFile(receiverAddr, fileName string, fileSize 
 		}
 		fmt.Printf("Request to send file %v (%d bytes) to %s using client %d\n", fileName, fileSize, receiverAddr, i)
 		addr := addIdentifier(receiverAddr, i, sender.getRemoteMode())
-		err = sender.clients[i].Send([]string{addr}, msg, 0)
+		err = sender.send(uint32(i), addr, msg)
 		if err != nil {
 			fmt.Printf("Send RequestSendFile msg using client %d error: %v\n", i, err)
 			continue
@@ -145,7 +145,7 @@ func (sender *Sender) SendFile(receiverAddr, filePath string, fileID, chunkSize,
 		senderClientID := senderClients[idx%len(senderClients)]
 		receiverClientID := receiverClients[idx/len(senderClients)]
 		addr := addIdentifier(receiverAddr, int(receiverClientID), sender.getRemoteMode())
-		err = sender.clients[senderClientID].Send([]string{addr}, msg, 0)
+		err = sender.send(senderClientID, addr, msg)
 		if err != nil {
 			fmt.Printf("Send message from client %d to receiver client %d error: %v\n", senderClientID, receiverClientID, err)
 			return nil, false
@@ -243,7 +243,7 @@ func (sender *Sender) startHandleMsg() {
 				if msg == nil {
 					continue
 				}
-				msgBody, msgType, err := ParseMessage(msg.Payload)
+				msgBody, msgType, err := sender.parseMessage(msg)
 				if err != nil {
 					fmt.Printf("Parse message error: %v\n", err)
 					continue
@@ -254,7 +254,7 @@ func (sender *Sender) startHandleMsg() {
 						msgType:    msgType,
 						msgBody:    msgBody,
 						src:        msg.Src,
-						receivedBy: i,
+						receivedBy: uint32(i),
 					}
 					select {
 					case sender.ctrlMsgChan <- cm:
@@ -319,7 +319,7 @@ func (sender *Sender) startHostMode() {
 					fmt.Printf("Create AcceptGetFile message error: %v\n", err)
 					continue
 				}
-				err = sender.clients[msg.receivedBy].Send([]string{msg.src}, reply, 0)
+				err = sender.send(msg.receivedBy, msg.src, reply)
 				if err != nil {
 					fmt.Printf("Client %d send message error: %v\n", msg.receivedBy, err)
 					continue
@@ -342,7 +342,7 @@ func (sender *Sender) startHostMode() {
 					fmt.Printf("Create RejectGetFile message error: %v\n", err)
 					continue
 				}
-				err = sender.clients[msg.receivedBy].Send([]string{msg.src}, reply, 0)
+				err = sender.send(msg.receivedBy, msg.src, reply)
 				if err != nil {
 					fmt.Printf("Client %d send message error: %v\n", msg.receivedBy, err)
 					continue

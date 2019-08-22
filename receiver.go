@@ -56,7 +56,7 @@ func (receiver *Receiver) RequestToGetFile(senderAddr, fileName string) (uint32,
 		}
 		fmt.Printf("Request to get file %v from %s using client %d\n", fileName, senderAddr, i)
 		addr := addIdentifier(senderAddr, i, receiver.getRemoteMode())
-		err = receiver.clients[i].Send([]string{addr}, msg, 0)
+		err = receiver.send(uint32(i), addr, msg)
 		if err != nil {
 			fmt.Printf("Send RequestGetFile msg using client %d error: %v\n", i, err)
 			continue
@@ -220,7 +220,7 @@ func (receiver *Receiver) startHandleMsg() {
 				if msg == nil {
 					continue
 				}
-				msgBody, msgType, err := ParseMessage(msg.Payload)
+				msgBody, msgType, err := receiver.parseMessage(msg)
 				if err != nil {
 					fmt.Printf("Parse message error: %v\n", err)
 					continue
@@ -231,7 +231,7 @@ func (receiver *Receiver) startHandleMsg() {
 						msgType:    msgType,
 						msgBody:    msgBody,
 						src:        msg.Src,
-						receivedBy: i,
+						receivedBy: uint32(i),
 					}
 					select {
 					case receiver.ctrlMsgChan <- cm:
@@ -259,7 +259,7 @@ func (receiver *Receiver) startHandleMsg() {
 						fmt.Printf("Create FileChunkAck message error: %v\n", err)
 						continue
 					}
-					err = receiver.clients[i].Send([]string{msg.Src}, reply, 0)
+					err = receiver.send(uint32(i), msg.Src, reply)
 					if err != nil {
 						fmt.Printf("Client %d send message error: %v\n", i, err)
 						continue
@@ -305,7 +305,7 @@ func (receiver *Receiver) startReceiveMode() {
 					fmt.Printf("Create AcceptSendFile message error: %v\n", err)
 					continue
 				}
-				err = receiver.clients[msg.receivedBy].Send([]string{msg.src}, reply, 0)
+				err = receiver.send(msg.receivedBy, msg.src, reply)
 				if err != nil {
 					fmt.Printf("Client %d send message error: %v\n", msg.receivedBy, err)
 					continue
@@ -323,7 +323,7 @@ func (receiver *Receiver) startReceiveMode() {
 					fmt.Printf("Create RejectSendFile message error: %v\n", err)
 					continue
 				}
-				err = receiver.clients[msg.receivedBy].Send([]string{msg.src}, reply, 0)
+				err = receiver.send(msg.receivedBy, msg.src, reply)
 				if err != nil {
 					fmt.Printf("Client %d send message error: %v\n", msg.receivedBy, err)
 					continue
