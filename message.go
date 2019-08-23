@@ -120,66 +120,35 @@ func (t *transmitter) parseMessage(pbmsg *pb.InboundMessage) (interface{}, Messa
 		return nil, 0, err
 	}
 
+	var msgBody proto.Message
 	switch msg.Type {
 	case MSG_REQUEST_SEND_FILE:
-		msgBody := &RequestSendFile{}
-		err = proto.Unmarshal(msg.Body, msgBody)
-		if err != nil {
-			return nil, msg.Type, err
-		}
-		return msgBody, msg.Type, nil
+		msgBody = &RequestSendFile{}
 	case MSG_ACCEPT_SEND_FILE:
-		msgBody := &AcceptSendFile{}
-		err = proto.Unmarshal(msg.Body, msgBody)
-		if err != nil {
-			return nil, msg.Type, err
-		}
-		return msgBody, msg.Type, nil
+		msgBody = &AcceptSendFile{}
 	case MSG_REJECT_SEND_FILE:
-		msgBody := &RejectSendFile{}
-		err = proto.Unmarshal(msg.Body, msgBody)
-		if err != nil {
-			return nil, msg.Type, err
-		}
-		return msgBody, msg.Type, nil
+		msgBody = &RejectSendFile{}
 	case MSG_FILE_CHUNK:
-		msgBody := &FileChunk{}
-		err = proto.Unmarshal(msg.Body, msgBody)
-		if err != nil {
-			return nil, msg.Type, err
-		}
-		return msgBody, msg.Type, nil
+		msgBody = &FileChunk{}
 	case MSG_FILE_CHUNK_ACK:
-		msgBody := &FileChunkAck{}
-		err = proto.Unmarshal(msg.Body, msgBody)
-		if err != nil {
-			return nil, msg.Type, err
-		}
-		return msgBody, msg.Type, nil
+		msgBody = &FileChunkAck{}
 	case MSG_REQUEST_GET_FILE:
-		msgBody := &RequestGetFile{}
-		err = proto.Unmarshal(msg.Body, msgBody)
-		if err != nil {
-			return nil, msg.Type, err
-		}
-		return msgBody, msg.Type, nil
+		msgBody = &RequestGetFile{}
 	case MSG_ACCEPT_GET_FILE:
-		msgBody := &AcceptGetFile{}
-		err = proto.Unmarshal(msg.Body, msgBody)
-		if err != nil {
-			return nil, msg.Type, err
-		}
-		return msgBody, msg.Type, nil
+		msgBody = &AcceptGetFile{}
 	case MSG_REJECT_GET_FILE:
-		msgBody := &RejectGetFile{}
-		err = proto.Unmarshal(msg.Body, msgBody)
-		if err != nil {
-			return nil, msg.Type, err
-		}
-		return msgBody, msg.Type, nil
+		msgBody = &RejectGetFile{}
+	case MSG_CANCEL_FILE:
+		msgBody = &CancelFile{}
+	default:
+		return nil, msg.Type, fmt.Errorf("unknown message type %v", msg.Type)
 	}
 
-	return nil, msg.Type, fmt.Errorf("unknown message type %v", msg.Type)
+	err = proto.Unmarshal(msg.Body, msgBody)
+	if err != nil {
+		return nil, msg.Type, err
+	}
+	return msgBody, msg.Type, nil
 }
 
 func NewRequestSendFileMessage(requestID uint32, fileName string, fileSize int64) ([]byte, error) {
@@ -281,13 +250,14 @@ func NewFileChunkAckMessage(fileID, chunkID uint32) ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
-func NewRequestGetFileMessage(fileName string, fileID, chunkSize, chunksBufSize uint32, clients []uint32) ([]byte, error) {
+func NewRequestGetFileMessage(fileName string, fileID, chunkSize, chunksBufSize uint32, clients []uint32, ranges []int64) ([]byte, error) {
 	msgBody := &RequestGetFile{
 		FileName:      fileName,
 		FileId:        fileID,
 		ChunkSize:     chunkSize,
 		ChunksBufSize: chunksBufSize,
 		Clients:       clients,
+		Ranges:        ranges,
 	}
 
 	buf, err := proto.Marshal(msgBody)
@@ -334,6 +304,24 @@ func NewRejectGetFileMessage(fileID uint32) ([]byte, error) {
 
 	msg := &Message{
 		Type: MSG_REJECT_GET_FILE,
+		Body: buf,
+	}
+
+	return proto.Marshal(msg)
+}
+
+func NewCancelFileMessage(fileID uint32) ([]byte, error) {
+	msgBody := &CancelFile{
+		FileId: fileID,
+	}
+
+	buf, err := proto.Marshal(msgBody)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &Message{
+		Type: MSG_CANCEL_FILE,
 		Body: buf,
 	}
 

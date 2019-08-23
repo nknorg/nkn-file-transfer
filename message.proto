@@ -31,6 +31,7 @@ enum MessageType {
   MSG_REQUEST_GET_FILE = 5;
   MSG_ACCEPT_GET_FILE = 6;
   MSG_REJECT_GET_FILE = 7;
+  MSG_CANCEL_FILE = 8;
 }
 
 message Message {
@@ -73,6 +74,7 @@ message RequestGetFile {
   uint32 chunk_size = 3;
   uint32 chunks_buf_size = 4;
   repeated uint32 clients = 5;
+  repeated int64 ranges = 6;
 }
 
 message AcceptGetFile {
@@ -81,5 +83,9 @@ message AcceptGetFile {
 }
 
 message RejectGetFile {
+  uint32 file_id = 1;
+}
+
+message CancelFile {
   uint32 file_id = 1;
 }
