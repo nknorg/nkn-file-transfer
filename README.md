@@ -44,6 +44,12 @@ PUT receiveAddress/fileName localFilePath
 ```
 to upload file.
 
+There is also a HTTP mode that can be enabled by `-http` together with `host`
+and `receive` mode. By default it will start a HTTP server at
+`http://127.0.0.1:8080` and can accept HTTP GET/PUT/HEAD request with route
+`remoteAddr/fileName`. It accepts HTTP GET request with Range header so browser
+can stream video while downloading.
+
 By default a random NKN address (key pair) will be generated each time. You can
 use a specific address by passing `-seed` and `-identifier` argument, same as a
 NKN client. Use `-help` argument to see all supported arguments.

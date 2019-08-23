@@ -90,6 +90,7 @@ type transmitter struct {
 	clients        []*nknsdk.Client
 	ctrlMsgChan    chan *ctrlMsg
 	sharedKeyCache common.Cache
+	cancelFunc     sync.Map
 }
 
 func newTransmitter(mode Mode, seed []byte, identifier string, numClients int) (*transmitter, error) {
