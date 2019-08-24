@@ -71,6 +71,7 @@ const (
 	sharedKeySize                 = 32
 	sharedKeyCacheExpiration      = time.Hour
 	sharedKeyCacheCleanupInterval = 10 * time.Minute
+	maxClientFails                = 3
 )
 
 type Config struct {
@@ -91,9 +92,10 @@ type transmitter struct {
 	ctrlMsgChan    chan *ctrlMsg
 	sharedKeyCache common.Cache
 	cancelFunc     sync.Map
+	numWorkers     uint32
 }
 
-func newTransmitter(mode Mode, seed []byte, identifier string, numClients int) (*transmitter, error) {
+func newTransmitter(mode Mode, seed []byte, identifier string, numClients, numWorkers uint32) (*transmitter, error) {
 	var account *vault.Account
 	var err error
 	if len(seed) > 0 {
@@ -115,7 +117,7 @@ func newTransmitter(mode Mode, seed []byte, identifier string, numClients int) (
 
 	addr := address.MakeAddressString(account.PubKey().EncodePoint(), identifier)
 
-	clients, err := CreateClients(account, identifier, numClients, mode)
+	clients, err := CreateClients(account, identifier, int(numClients), mode)
 	if err != nil {
 		return nil, fmt.Errorf("create clients error: %v", err)
 	}
@@ -125,6 +127,7 @@ func newTransmitter(mode Mode, seed []byte, identifier string, numClients int) (
 		addr:           addr,
 		account:        account,
 		clients:        clients,
+		numWorkers:     numWorkers,
 		ctrlMsgChan:    make(chan *ctrlMsg, ctrlMsgChanLen),
 		sharedKeyCache: common.NewGoCache(sharedKeyCacheExpiration, sharedKeyCacheCleanupInterval),
 	}

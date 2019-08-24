@@ -128,6 +128,8 @@ func (t *transmitter) parseMessage(pbmsg *pb.InboundMessage) (interface{}, Messa
 		msgBody = &AcceptSendFile{}
 	case MSG_REJECT_SEND_FILE:
 		msgBody = &RejectSendFile{}
+	case MSG_GET_FILE_CHUNK:
+		msgBody = &GetFileChunk{}
 	case MSG_FILE_CHUNK:
 		msgBody = &FileChunk{}
 	case MSG_FILE_CHUNK_ACK:
@@ -151,11 +153,13 @@ func (t *transmitter) parseMessage(pbmsg *pb.InboundMessage) (interface{}, Messa
 	return msgBody, msg.Type, nil
 }
 
-func NewRequestSendFileMessage(requestID uint32, fileName string, fileSize int64) ([]byte, error) {
+func NewRequestSendFileMessage(requestID uint32, fileName string, fileSize int64, mode TransmitMode, clients []uint32) ([]byte, error) {
 	msgBody := &RequestSendFile{
 		RequestId: requestID,
 		FileName:  fileName,
 		FileSize:  fileSize,
+		Mode:      mode,
+		Clients:   clients,
 	}
 
 	buf, err := proto.Marshal(msgBody)
@@ -211,6 +215,25 @@ func NewRejectSendFileMessage(requestID uint32) ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
+func NewGetFileChunkMessage(fileID, chunkID uint32) ([]byte, error) {
+	msgBody := &GetFileChunk{
+		FileId:  fileID,
+		ChunkId: chunkID,
+	}
+
+	buf, err := proto.Marshal(msgBody)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &Message{
+		Type: MSG_GET_FILE_CHUNK,
+		Body: buf,
+	}
+
+	return proto.Marshal(msg)
+}
+
 func NewFileChunkMessage(fileID, chunkID uint32, data []byte) ([]byte, error) {
 	msgBody := &FileChunk{
 		FileId:  fileID,
@@ -250,7 +273,7 @@ func NewFileChunkAckMessage(fileID, chunkID uint32) ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
-func NewRequestGetFileMessage(fileName string, fileID, chunkSize, chunksBufSize uint32, clients []uint32, ranges []int64) ([]byte, error) {
+func NewRequestGetFileMessage(fileName string, fileID, chunkSize, chunksBufSize uint32, clients []uint32, ranges []int64, mode TransmitMode) ([]byte, error) {
 	msgBody := &RequestGetFile{
 		FileName:      fileName,
 		FileId:        fileID,
@@ -258,6 +281,7 @@ func NewRequestGetFileMessage(fileName string, fileID, chunkSize, chunksBufSize 
 		ChunksBufSize: chunksBufSize,
 		Clients:       clients,
 		Ranges:        ranges,
+		Mode:          mode,
 	}
 
 	buf, err := proto.Marshal(msgBody)
@@ -273,10 +297,11 @@ func NewRequestGetFileMessage(fileName string, fileID, chunkSize, chunksBufSize 
 	return proto.Marshal(msg)
 }
 
-func NewAcceptGetFileMessage(fileID uint32, fileSize int64) ([]byte, error) {
+func NewAcceptGetFileMessage(fileID uint32, fileSize int64, clients []uint32) ([]byte, error) {
 	msgBody := &AcceptGetFile{
 		FileId:   fileID,
 		FileSize: fileSize,
+		Clients:  clients,
 	}
 
 	buf, err := proto.Marshal(msgBody)
