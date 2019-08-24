@@ -164,7 +164,7 @@ func (receiver *Receiver) ReceiveFile(ctx context.Context, w io.Writer, fileID u
 		key := chanKey(fileID, chunkID)
 		c, ok := receiver.dataChan.Load(key)
 		if !ok {
-			fmt.Printf("Data chan for fileID %d chunkID %d does not exist", fileID, chunkID)
+			fmt.Printf("Data chan for fileID %d chunkID %d does not exist\n", fileID, chunkID)
 			return false
 		}
 		var data []byte
@@ -176,7 +176,7 @@ func (receiver *Receiver) ReceiveFile(ctx context.Context, w io.Writer, fileID u
 		receiver.minChunkID.Store(fileID, chunkID+1)
 		_, err := w.Write(data)
 		if err != nil {
-			fmt.Printf("Write to file error: %v", err)
+			fmt.Printf("Write to file error: %v\n", err)
 			return false
 		}
 		receiver.dataChan.Delete(key)

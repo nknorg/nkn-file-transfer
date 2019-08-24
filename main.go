@@ -91,7 +91,7 @@ func main() {
 	case "pull":
 		transmitMode = TRANSMIT_MODE_PULL
 	default:
-		fmt.Printf("Unrecognized transmit mode: %v", *transmitModePtr)
+		fmt.Printf("Unrecognized transmit mode: %v\n", *transmitModePtr)
 		os.Exit(1)
 	}
 
@@ -256,7 +256,9 @@ func main() {
 					fileName = fileName[1:]
 				}
 
-				fileID, fileSize, hostClients, err := getter.RequestToGetFile(c.Request.Context(), c.Param("remoteAddr"), fileName, reqRanges, TRANSMIT_MODE_PULL)
+				ctx, cancel := context.WithCancel(c.Request.Context())
+
+				fileID, fileSize, hostClients, err := getter.RequestToGetFile(ctx, c.Param("remoteAddr"), fileName, reqRanges, TRANSMIT_MODE_PULL)
 				if err != nil {
 					fmt.Printf("Request to get file error: %v\n", err)
 					c.Status(http.StatusNotFound)
@@ -273,33 +275,44 @@ func main() {
 				}
 				totalSize := endPos - startPos + 1
 
+				c.Header("Content-Length", strconv.FormatInt(totalSize, 10))
+				c.Header("Content-Type", mime.TypeByExtension(filepath.Ext(fileName)))
+				c.Header("Accept-Ranges", "bytes")
+
+				if len(reqRanges) > 0 {
+					c.Status(http.StatusPartialContent)
+					c.Header("Content-Range", fmt.Sprintf("bytes %d-%d/%d", startPos, endPos, fileSize))
+				} else {
+					c.Status(http.StatusOK)
+				}
+
 				reader, writer := io.Pipe()
-				bufferedWriter := bufio.NewWriter(writer)
+				defer writer.Close()
 
 				go func() {
-					err = getter.ReceiveFile(c.Request.Context(), bufferedWriter, fileID, totalSize, TRANSMIT_MODE_PULL, hostClients, c.Param("remoteAddr"))
-					bufferedWriter.Flush()
-					writer.Close()
-					if err != nil {
-						select {
-						case <-c.Request.Context().Done():
-							getter.CancelFile(c.Param("remoteAddr"), fileID)
-						default:
+					b := make([]byte, 1024)
+					for {
+						n, err := reader.Read(b)
+						if err != nil {
+							return
 						}
-						fmt.Printf("Receive file error: %v\n", err)
+						_, err = c.Writer.Write(b[:n])
+						if err != nil {
+							cancel()
+							return
+						}
+						c.Writer.Flush()
 					}
 				}()
 
-				extraHeaders := map[string]string{
-					"Accept-Ranges": "bytes",
-				}
-				contentType := mime.TypeByExtension(filepath.Ext(fileName))
-
-				if len(reqRanges) > 0 {
-					extraHeaders["Content-Range"] = fmt.Sprintf("bytes %d-%d/%d", startPos, endPos, fileSize)
-					c.DataFromReader(http.StatusPartialContent, totalSize, contentType, reader, extraHeaders)
-				} else {
-					c.DataFromReader(http.StatusOK, fileSize, contentType, reader, extraHeaders)
+				err = getter.ReceiveFile(c.Request.Context(), writer, fileID, totalSize, TRANSMIT_MODE_PULL, hostClients, c.Param("remoteAddr"))
+				if err != nil {
+					select {
+					case <-c.Request.Context().Done():
+						getter.CancelFile(c.Param("remoteAddr"), fileID)
+					default:
+					}
+					fmt.Printf("Receive file error: %v\n", err)
 				}
 			})
 
