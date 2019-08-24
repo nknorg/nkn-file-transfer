@@ -53,10 +53,11 @@ func main() {
 	hostModePtr := flag.Bool("host", false, "Enable host mode")
 	httpModePtr := flag.Bool("http", false, "Enable HTTP mode (for get/send mode)")
 	httpListenAddrPtr := flag.String("http-listen-addr", "127.0.0.1:8080", "HTTP listen address")
+	transmitModePtr := flag.String("transmit-mode", "push", "Transmit mode (push or pull)")
 	seedPtr := flag.String("seed", "", "Secret seed")
 	identifierPtr := flag.String("identifier", "", "NKN address identifier")
 	numClientsPtr := flag.Int("clients", 8, "Number of clients")
-	numWorkersPtr := flag.Int("workers", 1024, "Number of workers (for send/host mode)")
+	numWorkersPtr := flag.Int("workers", 1024, "Number of workers")
 	chunkSizePtr := flag.Int("chunksize", 1024, "File chunk size in bytes (for receive/get mode)")
 	bufSizePtr := flag.Int("bufsize", 32, "File buffer size in megabytes (for receive/get mode)")
 
@@ -80,6 +81,17 @@ func main() {
 	}
 	if *bufSizePtr <= 0 {
 		fmt.Println("File buffer size needs to be greater than 0")
+		os.Exit(1)
+	}
+
+	var transmitMode TransmitMode
+	switch *transmitModePtr {
+	case "push":
+		transmitMode = TRANSMIT_MODE_PUSH
+	case "pull":
+		transmitMode = TRANSMIT_MODE_PULL
+	default:
+		fmt.Printf("Unrecognized transmit mode: %v", *transmitModePtr)
 		os.Exit(1)
 	}
 
@@ -244,7 +256,7 @@ func main() {
 					fileName = fileName[1:]
 				}
 
-				fileID, fileSize, err := getter.RequestToGetFile(c.Request.Context(), c.Param("remoteAddr"), fileName, reqRanges)
+				fileID, fileSize, hostClients, err := getter.RequestToGetFile(c.Request.Context(), c.Param("remoteAddr"), fileName, reqRanges, TRANSMIT_MODE_PULL)
 				if err != nil {
 					fmt.Printf("Request to get file error: %v\n", err)
 					c.Status(http.StatusNotFound)
@@ -262,10 +274,12 @@ func main() {
 				totalSize := endPos - startPos + 1
 
 				reader, writer := io.Pipe()
+				bufferedWriter := bufio.NewWriter(writer)
 
 				go func() {
-					defer writer.Close()
-					err = getter.ReceiveFile(c.Request.Context(), writer, fileID, totalSize, getter.chunkSize, getter.chunksBufSize)
+					err = getter.ReceiveFile(c.Request.Context(), bufferedWriter, fileID, totalSize, TRANSMIT_MODE_PULL, hostClients, c.Param("remoteAddr"))
+					bufferedWriter.Flush()
+					writer.Close()
 					if err != nil {
 						select {
 						case <-c.Request.Context().Done():
@@ -297,26 +311,12 @@ func main() {
 
 				reqRanges := []int64{0, 0}
 
-				fileID, fileSize, err := getter.RequestToGetFile(c.Request.Context(), c.Param("remoteAddr"), fileName, reqRanges)
+				_, fileSize, _, err := getter.RequestToGetFile(c.Request.Context(), c.Param("remoteAddr"), fileName, reqRanges, TRANSMIT_MODE_PULL)
 				if err != nil {
 					fmt.Printf("Request to get file error: %v\n", err)
 					c.Status(http.StatusNotFound)
 					return
 				}
-
-				go func() {
-					_, writer := io.Pipe()
-					defer writer.Close()
-					err = getter.ReceiveFile(c.Request.Context(), writer, fileID, 1, getter.chunkSize, getter.chunksBufSize)
-					if err != nil {
-						select {
-						case <-c.Request.Context().Done():
-							getter.CancelFile(c.Param("remoteAddr"), fileID)
-						default:
-						}
-						fmt.Printf("Receive file error: %v\n", err)
-					}
-				}()
 
 				c.Header("Content-Length", strconv.FormatInt(fileSize, 10))
 				c.Header("Content-Type", mime.TypeByExtension(filepath.Ext(fileName)))
@@ -340,14 +340,14 @@ func main() {
 				}
 
 				ctx := context.Background()
-				fileID, chunkSize, chunksBufSize, availableClients, err := sender.RequestToSendFile(ctx, c.Param("remoteAddr"), fileName, int64(len(data)))
+				fileID, chunkSize, chunksBufSize, availableClients, err := sender.RequestToSendFile(ctx, c.Param("remoteAddr"), fileName, int64(len(data)), TRANSMIT_MODE_PUSH)
 				if err != nil {
 					fmt.Printf("Request to send file error: %v\n", err)
 					c.Status(http.StatusForbidden)
 					return
 				}
 
-				err = sender.SendFile(ctx, bytes.NewReader(data), c.Param("remoteAddr"), fileID, chunkSize, chunksBufSize, availableClients, nil)
+				err = sender.SendFile(ctx, bytes.NewReader(data), c.Param("remoteAddr"), fileID, chunkSize, chunksBufSize, availableClients, nil, TRANSMIT_MODE_PUSH)
 				if err != nil {
 					fmt.Printf("Send file error: %v\n", err)
 					c.Status(http.StatusForbidden)
@@ -448,7 +448,7 @@ func main() {
 					fileName = sub[1]
 				}
 
-				err = sender.RequestAndSendFile(context.Background(), receiverAddr, filePath, fileName, fileInfo.Size())
+				err = sender.RequestAndSendFile(context.Background(), receiverAddr, filePath, fileName, fileInfo.Size(), transmitMode)
 				if err != nil {
 					fmt.Printf("RequestAndSendFile error: %v\n", err)
 					continue
@@ -467,7 +467,7 @@ func main() {
 					filePath = fileName
 				}
 
-				err = getter.RequestAndGetFile(context.Background(), senderAddr, filePath, fileName)
+				err = getter.RequestAndGetFile(context.Background(), senderAddr, filePath, fileName, transmitMode)
 				if err != nil {
 					fmt.Printf("RequestAndGetFile error: %v\n", err)
 					continue

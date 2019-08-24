@@ -22,6 +22,11 @@ enum Mode {
   MODE_HOST = 3;
 }
 
+enum TransmitMode {
+  TRANSMIT_MODE_PUSH = 0;
+  TRANSMIT_MODE_PULL = 1;
+}
+
 enum MessageType {
   MSG_REQUEST_SEND_FILE = 0;
   MSG_ACCEPT_SEND_FILE = 1;
@@ -32,6 +37,7 @@ enum MessageType {
   MSG_ACCEPT_GET_FILE = 6;
   MSG_REJECT_GET_FILE = 7;
   MSG_CANCEL_FILE = 8;
+  MSG_GET_FILE_CHUNK = 9;
 }
 
 message Message {
@@ -43,6 +49,8 @@ message RequestSendFile {
   uint32 request_id = 1;
   string file_name = 2;
   int64 file_size = 3;
+  TransmitMode mode = 4;
+  repeated uint32 clients = 5;
 }
 
 message AcceptSendFile {
@@ -55,6 +63,11 @@ message AcceptSendFile {
 
 message RejectSendFile {
   uint32 request_id = 1;
+}
+
+message GetFileChunk {
+  uint32 file_id = 1;
+  uint32 chunk_id = 2;
 }
 
 message FileChunk {
@@ -75,11 +88,13 @@ message RequestGetFile {
   uint32 chunks_buf_size = 4;
   repeated uint32 clients = 5;
   repeated int64 ranges = 6;
+  TransmitMode mode = 7;
 }
 
 message AcceptGetFile {
   uint32 file_id = 1;
   int64 file_size = 3;
+  repeated uint32 clients = 2;
 }
 
 message RejectGetFile {
