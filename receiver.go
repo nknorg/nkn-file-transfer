@@ -13,10 +13,6 @@ import (
 	"github.com/nknorg/consequential"
 )
 
-const (
-	getChunkTimeout = 5 * time.Second
-)
-
 type Receiver struct {
 	*transmitter
 	dataChan         sync.Map
@@ -58,57 +54,35 @@ func (receiver *Receiver) RequestToGetFile(ctx context.Context, senderAddr, file
 	receiver.minChunkID.LoadOrStore(fileID, uint32(0))
 	receiver.fileTransmitMode.Store(fileID, mode)
 
-	for i := 0; i < len(receiver.clients); i++ {
-		if receiver.clients[i] == nil {
-			continue
-		}
-		fmt.Printf("Request to get file %v from %s using client %d\n", fileName, senderAddr, i)
-		addr := addIdentifier(senderAddr, i, receiver.getRemoteMode())
-		err = receiver.send(uint32(i), addr, msg)
-		if err != nil {
-			fmt.Printf("Send RequestGetFile msg using client %d error: %v\n", i, err)
-			continue
-		}
-		timeout := time.After(5 * time.Second)
-		for {
-			select {
-			case reply := <-receiver.ctrlMsgChan:
-				switch reply.msgType {
-				case MSG_ACCEPT_GET_FILE:
-					acceptGetFile := reply.msgBody.(*AcceptGetFile)
-					if acceptGetFile.FileId != fileID {
-						fmt.Printf("Ignore AcceptGetFile message from %v with incorrect file id %d\n", reply.src, acceptGetFile.FileId)
-						continue
-					}
-					fmt.Printf("Sender %s accepted to send file %v (%d bytes) with ID %d\n", senderAddr, fileName, acceptGetFile.FileSize, fileID)
-					return acceptGetFile.FileId, acceptGetFile.FileSize, acceptGetFile.Clients, nil
-				case MSG_REJECT_GET_FILE:
-					rejectGetFile := reply.msgBody.(*RejectGetFile)
-					if rejectGetFile.FileId != fileID {
-						fmt.Printf("Ignore RejectGetFile message from %v with incorrect file id %d\n", reply.src, rejectGetFile.FileId)
-						continue
-					}
-					return 0, 0, nil, fmt.Errorf("sender %s rejected to send file %s", senderAddr, fileName)
-				default:
-					fmt.Printf("Ignore message type %v\n", reply.msgType)
-					continue
-				}
-			case <-timeout:
-				fmt.Println("Wait for accept get file msg timeout")
-				break
-			case <-ctx.Done():
-				return 0, 0, nil, ctx.Err()
-			}
-			break
-		}
+	if ok := receiver.sendAll(senderAddr, msg, nil); !ok {
+		return 0, 0, nil, fmt.Errorf("send RequestGetFile msg using all clients failed")
 	}
 
-	return 0, 0, nil, fmt.Errorf("all clients failed")
+	c, _ := receiver.replyChan.LoadOrStore(fileID, make(chan *receivedMsg, 0))
+	defer receiver.replyChan.Delete(fileID)
+
+	select {
+	case reply := <-c.(chan *receivedMsg):
+		switch reply.msgType {
+		case MSG_ACCEPT_GET_FILE:
+			acceptGetFile := reply.msgBody.(*AcceptGetFile)
+			fmt.Printf("Sender %s accepted to send file %v (%d bytes) with ID %d\n", senderAddr, fileName, acceptGetFile.FileSize, fileID)
+			return acceptGetFile.FileId, acceptGetFile.FileSize, acceptGetFile.Clients, nil
+		case MSG_REJECT_GET_FILE:
+			return 0, 0, nil, fmt.Errorf("sender %s rejected to send file %s", senderAddr, fileName)
+		default:
+			return 0, 0, nil, fmt.Errorf("invalid reply type %v", reply.msgType)
+		}
+	case <-time.After(replyTimeout):
+		return 0, 0, nil, fmt.Errorf("wait for accept get file msg timeout")
+	case <-ctx.Done():
+		return 0, 0, nil, ctx.Err()
+	}
 }
 
-func (receiver *Receiver) ReceiveFile(ctx context.Context, w io.Writer, fileID uint32, totalSize int64, mode TransmitMode, senderClients []uint32, senderAddr string) error {
+func (receiver *Receiver) ReceiveFile(ctx context.Context, w io.Writer, senderAddr string, senderClients []uint32, fileID uint32, totalSize int64, mode TransmitMode) error {
 	defer time.AfterFunc(5*time.Second, func() {
-		receiver.CancelFile(senderAddr, fileID)
+		receiver.CancelFile(senderAddr, fileID, senderClients)
 	})
 
 	defer time.AfterFunc(time.Minute, func() {
@@ -140,7 +114,7 @@ func (receiver *Receiver) ReceiveFile(ctx context.Context, w io.Writer, fileID u
 				return 0, false
 			}
 
-			timeout = time.After(getChunkTimeout)
+			timeout = time.After(replyTimeout)
 		}
 
 		c, _ := receiver.dataChan.LoadOrStore(chanKey(fileID, chunkID), make(chan []byte, 1))
@@ -235,19 +209,13 @@ func (receiver *Receiver) ReceiveFile(ctx context.Context, w io.Writer, fileID u
 	return nil
 }
 
-func (receiver *Receiver) CancelFile(senderAddr string, fileID uint32) {
+func (receiver *Receiver) CancelFile(senderAddr string, fileID uint32, senderClients []uint32) {
 	msg, err := NewCancelFileMessage(fileID)
 	if err != nil {
 		fmt.Printf("Create CancelFile message error: %v\n", err)
 		return
 	}
-	for i := 0; i < len(receiver.clients); i++ {
-		if receiver.clients[i] == nil {
-			continue
-		}
-		addr := addIdentifier(senderAddr, i, receiver.getRemoteMode())
-		receiver.send(uint32(i), addr, msg)
-	}
+	receiver.sendAll(senderAddr, msg, senderClients)
 }
 
 func (receiver *Receiver) RequestAndGetFile(ctx context.Context, senderAddr, filePath, fileName string, mode TransmitMode) error {
@@ -260,7 +228,7 @@ func (receiver *Receiver) RequestAndGetFile(ctx context.Context, senderAddr, fil
 	defer func() {
 		select {
 		case <-ctx.Done():
-			receiver.CancelFile(senderAddr, fileID)
+			receiver.CancelFile(senderAddr, fileID, senderClients)
 		default:
 		}
 	}()
@@ -276,7 +244,7 @@ func (receiver *Receiver) RequestAndGetFile(ctx context.Context, senderAddr, fil
 
 	defer file.Close()
 
-	err = receiver.ReceiveFile(ctx, file, fileID, fileSize, mode, senderClients, senderAddr)
+	err = receiver.ReceiveFile(ctx, file, senderAddr, senderClients, fileID, fileSize, mode)
 	if err != nil {
 		return fmt.Errorf("receive file error: %v", err)
 	}
@@ -297,17 +265,45 @@ func (receiver *Receiver) startHandleMsg() {
 					continue
 				}
 				switch msgType {
-				case MSG_REQUEST_SEND_FILE, MSG_ACCEPT_GET_FILE, MSG_REJECT_GET_FILE, MSG_CANCEL_FILE:
-					cm := &ctrlMsg{
+				case MSG_REQUEST_SEND_FILE, MSG_CANCEL_FILE:
+					m := &receivedMsg{
 						msgType:    msgType,
 						msgBody:    msgBody,
 						src:        msg.Src,
 						receivedBy: uint32(i),
 					}
 					select {
-					case receiver.ctrlMsgChan <- cm:
+					case receiver.ctrlMsgChan <- m:
 					default:
 						fmt.Printf("Control msg chan full, disgarding msg\n")
+					}
+				case MSG_ACCEPT_GET_FILE:
+					acceptGetFile := msgBody.(*AcceptGetFile)
+					if c, ok := receiver.replyChan.Load(acceptGetFile.FileId); ok {
+						m := &receivedMsg{
+							msgType:    msgType,
+							msgBody:    msgBody,
+							src:        msg.Src,
+							receivedBy: uint32(i),
+						}
+						select {
+						case c.(chan *receivedMsg) <- m:
+						default:
+						}
+					}
+				case MSG_REJECT_GET_FILE:
+					rejectGetFile := msgBody.(*RejectGetFile)
+					if c, ok := receiver.replyChan.Load(rejectGetFile.FileId); ok {
+						m := &receivedMsg{
+							msgType:    msgType,
+							msgBody:    msgBody,
+							src:        msg.Src,
+							receivedBy: uint32(i),
+						}
+						select {
+						case c.(chan *receivedMsg) <- m:
+						default:
+						}
 					}
 				case MSG_FILE_CHUNK:
 					fileChunk := msgBody.(*FileChunk)
@@ -369,7 +365,7 @@ func (receiver *Receiver) startReceiveMode() {
 		switch msg.msgType {
 		case MSG_REQUEST_SEND_FILE:
 			requestSendFile := msg.msgBody.(*RequestSendFile)
-			baseAddr, err := removeIdentifier(msg.src)
+			senderAddr, err := removeIdentifier(msg.src)
 			if err != nil {
 				fmt.Printf("Remove identifier error: %v\n", err)
 				continue
@@ -388,9 +384,8 @@ func (receiver *Receiver) startReceiveMode() {
 					if err != nil {
 						return fmt.Errorf("create AcceptSendFile message error: %v", err)
 					}
-					err = receiver.send(msg.receivedBy, msg.src, reply)
-					if err != nil {
-						return fmt.Errorf("client %d send message error: %v", msg.receivedBy, err)
+					if ok := receiver.sendAll(senderAddr, reply, requestSendFile.Clients); !ok {
+						return fmt.Errorf("send AcceptSendFile message failed")
 					}
 					return nil
 				}()
@@ -406,7 +401,7 @@ func (receiver *Receiver) startReceiveMode() {
 					receiver.fileTransmitMode.Store(fileID, requestSendFile.Mode)
 					ctx, cancel := context.WithCancel(context.Background())
 					receiver.cancelFunc.Store(fileID, cancel)
-					err := receiver.ReceiveFile(ctx, file, fileID, requestSendFile.FileSize, requestSendFile.Mode, requestSendFile.Clients, baseAddr)
+					err := receiver.ReceiveFile(ctx, file, senderAddr, requestSendFile.Clients, fileID, requestSendFile.FileSize, requestSendFile.Mode)
 					if err != nil {
 						fmt.Printf("Receive file error: %v\n", err)
 					}
@@ -419,12 +414,10 @@ func (receiver *Receiver) startReceiveMode() {
 					fmt.Printf("Create RejectSendFile message error: %v\n", err)
 					continue
 				}
-				err = receiver.send(msg.receivedBy, msg.src, reply)
-				if err != nil {
-					fmt.Printf("Client %d send message error: %v\n", msg.receivedBy, err)
+				if ok := receiver.sendAll(senderAddr, reply, requestSendFile.Clients); !ok {
+					fmt.Printf("Send RejectSendFile message failed\n")
 					continue
 				}
-				continue
 			}
 		case MSG_CANCEL_FILE:
 			cancelFile := msg.msgBody.(*CancelFile)

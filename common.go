@@ -72,6 +72,7 @@ const (
 	sharedKeyCacheExpiration      = time.Hour
 	sharedKeyCacheCleanupInterval = 10 * time.Minute
 	maxClientFails                = 3
+	replyTimeout                  = 5 * time.Second
 )
 
 type Config struct {
@@ -89,7 +90,8 @@ type transmitter struct {
 	addr           string
 	account        *vault.Account
 	clients        []*nknsdk.Client
-	ctrlMsgChan    chan *ctrlMsg
+	ctrlMsgChan    chan *receivedMsg
+	replyChan      sync.Map
 	sharedKeyCache common.Cache
 	cancelFunc     sync.Map
 	numWorkers     uint32
@@ -128,7 +130,7 @@ func newTransmitter(mode Mode, seed []byte, identifier string, numClients, numWo
 		account:        account,
 		clients:        clients,
 		numWorkers:     numWorkers,
-		ctrlMsgChan:    make(chan *ctrlMsg, ctrlMsgChanLen),
+		ctrlMsgChan:    make(chan *receivedMsg, ctrlMsgChanLen),
 		sharedKeyCache: common.NewGoCache(sharedKeyCacheExpiration, sharedKeyCacheCleanupInterval),
 	}
 
