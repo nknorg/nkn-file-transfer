@@ -265,3 +265,9 @@ func allowPath(path string) (bool, error) {
 
 	return !strings.HasPrefix(relPath, ".."), nil
 }
+
+func dispatchWorker(workerID, numSenders, numRececivers int) (int, int) {
+	senderIdx := workerID % numSenders
+	receiverIdx := (senderIdx + workerID/numSenders) % numRececivers
+	return senderIdx, receiverIdx
+}
