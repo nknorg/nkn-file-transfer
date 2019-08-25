@@ -215,6 +215,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	if *httpModePtr {
+		gin.SetMode(gin.ReleaseMode)
 		router := gin.Default()
 
 		if *getModePtr {
@@ -371,6 +372,7 @@ func main() {
 			})
 		}
 
+		fmt.Printf("Starting HTTP server on %s\n", *httpListenAddrPtr)
 		router.Run(*httpListenAddrPtr)
 	}
 
