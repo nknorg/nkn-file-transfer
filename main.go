@@ -256,9 +256,7 @@ func main() {
 					fileName = fileName[1:]
 				}
 
-				ctx, cancel := context.WithCancel(c.Request.Context())
-
-				fileID, fileSize, hostClients, err := getter.RequestToGetFile(ctx, c.Param("remoteAddr"), fileName, reqRanges, TRANSMIT_MODE_PULL)
+				fileID, fileSize, hostClients, err := getter.RequestToGetFile(c.Request.Context(), c.Param("remoteAddr"), fileName, reqRanges, TRANSMIT_MODE_PULL)
 				if err != nil {
 					fmt.Printf("Request to get file error: %v\n", err)
 					c.Status(http.StatusNotFound)
@@ -286,6 +284,8 @@ func main() {
 					c.Status(http.StatusOK)
 				}
 
+				ctx, cancel := context.WithCancel(c.Request.Context())
+
 				reader, writer := io.Pipe()
 				defer writer.Close()
 
@@ -305,11 +305,11 @@ func main() {
 					}
 				}()
 
-				err = getter.ReceiveFile(c.Request.Context(), writer, fileID, totalSize, TRANSMIT_MODE_PULL, hostClients, c.Param("remoteAddr"))
+				err = getter.ReceiveFile(ctx, writer, c.Param("remoteAddr"), hostClients, fileID, totalSize, TRANSMIT_MODE_PULL)
 				if err != nil {
 					select {
-					case <-c.Request.Context().Done():
-						getter.CancelFile(c.Param("remoteAddr"), fileID)
+					case <-ctx.Done():
+						getter.CancelFile(c.Param("remoteAddr"), fileID, hostClients)
 					default:
 					}
 					fmt.Printf("Receive file error: %v\n", err)
@@ -353,21 +353,21 @@ func main() {
 				}
 
 				ctx := context.Background()
-				fileID, chunkSize, chunksBufSize, availableClients, err := sender.RequestToSendFile(ctx, c.Param("remoteAddr"), fileName, int64(len(data)), TRANSMIT_MODE_PUSH)
+				fileID, chunkSize, chunksBufSize, receiverClients, err := sender.RequestToSendFile(ctx, c.Param("remoteAddr"), fileName, int64(len(data)), TRANSMIT_MODE_PUSH)
 				if err != nil {
 					fmt.Printf("Request to send file error: %v\n", err)
 					c.Status(http.StatusForbidden)
 					return
 				}
 
-				err = sender.SendFile(ctx, bytes.NewReader(data), c.Param("remoteAddr"), fileID, chunkSize, chunksBufSize, availableClients, nil, TRANSMIT_MODE_PUSH)
+				err = sender.SendFile(ctx, bytes.NewReader(data), c.Param("remoteAddr"), receiverClients, fileID, chunkSize, chunksBufSize, nil, TRANSMIT_MODE_PUSH)
 				if err != nil {
 					fmt.Printf("Send file error: %v\n", err)
 					c.Status(http.StatusForbidden)
 					return
 				}
 
-				c.String(http.StatusOK, "Done")
+				c.Status(http.StatusOK)
 			})
 		}
 

@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/nacl/box"
 )
 
-type ctrlMsg struct {
+type receivedMsg struct {
 	msgType    MessageType
 	msgBody    interface{}
 	src        string
@@ -96,6 +96,27 @@ func (t *transmitter) send(clientID uint32, dest string, msg []byte) error {
 	}
 
 	return t.clients[clientID].Send([]string{dest}, encrypted, 0)
+}
+
+func (t *transmitter) sendAll(remoteAddr string, msg []byte, remoteClients []uint32) bool {
+	clientIDs := t.getAvailableClientIDs()
+	success := false
+	if len(remoteClients) == 0 {
+		for i := 0; i < len(t.clients); i++ {
+			dest := addIdentifier(remoteAddr, i, t.getRemoteMode())
+			if err := t.send(clientIDs[i%len(clientIDs)], dest, msg); err == nil {
+				success = true
+			}
+		}
+	} else {
+		for i, remoteClientID := range remoteClients {
+			dest := addIdentifier(remoteAddr, int(remoteClientID), t.getRemoteMode())
+			if err := t.send(clientIDs[i%len(clientIDs)], dest, msg); err == nil {
+				success = true
+			}
+		}
+	}
+	return success
 }
 
 func (t *transmitter) parseMessage(pbmsg *pb.InboundMessage) (interface{}, MessageType, error) {
