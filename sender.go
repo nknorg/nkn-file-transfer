@@ -189,9 +189,9 @@ func (sender *Sender) SendFile(ctx context.Context, rs io.ReadSeeker, receiverAd
 				return 0, false
 			}
 
-			idx := int(workerID) % (len(senderClients) * len(receiverClients))
-			senderClientID := senderClients[idx%len(senderClients)]
-			receiverClientID := receiverClients[idx/len(senderClients)]
+			senderIdx, receiverIdx := dispatchWorker(int(workerID), len(senderClients), len(receiverClients))
+			senderClientID := senderClients[senderIdx]
+			receiverClientID := receiverClients[receiverIdx]
 			addr := addIdentifier(receiverAddr, int(receiverClientID), sender.getRemoteMode())
 			err = sender.send(senderClientID, addr, msg)
 			if err != nil {
