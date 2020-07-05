@@ -1,3 +1,9 @@
+This library is deprecated as it's intended to be a PoC. Please use the new
+session mode in NKN SDK multiclient (e.g.
+https://github.com/nknorg/nkn-sdk-go and
+https://github.com/nknorg/nkn-sdk-js) for library, or https://nftp.nkn.org
+for ready to use application.
+
 # NKN File Transfer
 
 A decentralized file transfer application using NKN client.
